@@ -421,9 +421,13 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       <button class="btn btn-primary" style="margin-bottom:12px" onclick="createLobby()">Create Lobby & Get Code</button>
       <div style="text-align:center;font-size:13px;color:var(--team-text3);margin:10px 0">— or enter a code to join —</div>
       <div style="display:flex;gap:8px">
-        <input type="text" id="join-code" placeholder="6-digit code" maxlength="6" style="text-align:center;letter-spacing:4px;font-size:20px;font-weight:700;font-family:'Bebas Neue'">
+        <input type="text" id="join-code" placeholder="6-digit code" maxlength="6"
+          style="text-align:center;letter-spacing:4px;font-size:20px;font-weight:700;font-family:'Bebas Neue'"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+          onkeydown="if(event.key==='Enter')joinLobby()">
         <button class="btn btn-primary" style="width:auto;padding:13px 18px;flex-shrink:0" onclick="joinLobby()">Join</button>
       </div>
+      <div class="err" id="d-join-err" style="margin-top:10px;text-align:center;font-size:13px"></div>
     </div>
 
     <!-- WAITING ROOM -->
@@ -1271,14 +1275,19 @@ async function createLobby(){
 }
 
 async function joinLobby(){
-  if(!fbReady()){ toast('⏳ Connecting to server, please wait...'); return; }
-  const code = document.getElementById('join-code').value.trim();
+  if(!fbReady()) return;
+  const code  = document.getElementById('join-code').value.trim();
   const errEl = document.getElementById('d-join-err');
-  errEl.classList.remove('show');
+
+  // Helper: show error either in element or toast
+  const showErr = (msg) => {
+    if(errEl){ errEl.textContent=msg; errEl.classList.add('show'); }
+    else toast('❌ ' + msg);
+  };
+  if(errEl) errEl.classList.remove('show');
 
   if(code.length !== 6 || isNaN(code)){
-    errEl.textContent = 'Enter a valid 6-digit code';
-    errEl.classList.add('show'); return;
+    showErr('Enter a valid 6-digit code'); return;
   }
 
   const db = window._fbDB;
@@ -1286,41 +1295,41 @@ async function joinLobby(){
   // Check room exists
   const roomSnap = await db.ref('duels/' + code).once('value');
   if(!roomSnap.exists()){
-    errEl.textContent = 'Room not found. Check the code and try again.';
-    errEl.classList.add('show'); return;
+    showErr('Room not found. Check the code and try again.'); return;
   }
   const room = roomSnap.val();
   if(room.status !== 'waiting'){
-    errEl.textContent = 'This game has already started or finished.';
-    errEl.classList.add('show'); return;
+    showErr('This game has already started or finished.'); return;
   }
   if(room.guest){
-    errEl.textContent = 'This lobby is full.';
-    errEl.classList.add('show'); return;
+    showErr('This lobby is full.'); return;
   }
 
-  duelCode  = code;
-  duelRole  = 'guest';
-  dOppName  = room.host.name;
-  duelRoomRef = ref(db, 'duels/' + code);
+  try {
+    duelCode    = code;
+    duelRole    = 'guest';
+    dOppName    = room.host.name;
+    duelRoomRef = db.ref('duels/' + code);
 
-  // Write guest into room
-  await db.ref('duels/' + code + '/guest').set({
-    name: S.cu ? S.cu.name.split(' ')[0] : 'Guest', score: 0, done: false
-  });
+    // Write guest into room
+    await db.ref('duels/' + code + '/guest').set({
+      name: S.cu ? S.cu.name.split(' ')[0] : 'Guest', score: 0, done: false
+    });
 
-  document.getElementById('d-code').textContent    = code;
-  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'G';
-  document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  document.getElementById('d-p2-slot').innerHTML   =
-    `<div class="p-avatar" style="background:var(--team-primary)">${room.host.name.charAt(0)}</div>
-     <div class="p-name">${room.host.name}</div>
-     <span class="p-status ready">READY</span>`;
-  document.getElementById('d-conn-status').innerHTML = '🟢 Joined! Waiting for host to start...';
-  document.getElementById('d-start-btn').disabled    = true;
-  document.getElementById('d-start-btn').textContent = 'Waiting for host to start...';
+    // Switch to waiting room UI first
+    hide('d-lobby'); show('d-waiting');
 
-  hide('d-lobby'); show('d-waiting');
+    // Now safe to update elements (they're visible/in DOM)
+    document.getElementById('d-code').textContent      = code;
+    document.getElementById('d-p1-av').textContent     = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'G';
+    document.getElementById('d-p1-name').textContent   = S.cu ? S.cu.name.split(' ')[0] : 'You';
+    document.getElementById('d-p2-slot').innerHTML     =
+      `<div class="p-avatar" style="background:var(--team-primary)">${room.host.name.charAt(0)}</div>
+       <div class="p-name">${room.host.name}</div>
+       <span class="p-status ready">READY</span>`;
+    document.getElementById('d-conn-status').innerHTML = '🟢 Joined! Waiting for host to start...';
+    document.getElementById('d-start-btn').disabled    = true;
+    document.getElementById('d-start-btn').textContent = 'Waiting for host to start...';
 
   // Guest listens for status → playing
   const statusRef = db.ref('duels/' + code + '/status');
