@@ -1316,10 +1316,9 @@ async function joinLobby(){
       name: S.cu ? S.cu.name.split(' ')[0] : 'Guest', score: 0, done: false
     });
 
-    // Switch to waiting room UI first
+    // Switch to waiting room UI first, then update elements
     hide('d-lobby'); show('d-waiting');
 
-    // Now safe to update elements (they're visible/in DOM)
     document.getElementById('d-code').textContent      = code;
     document.getElementById('d-p1-av').textContent     = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'G';
     document.getElementById('d-p1-name').textContent   = S.cu ? S.cu.name.split(' ')[0] : 'You';
@@ -1331,12 +1330,20 @@ async function joinLobby(){
     document.getElementById('d-start-btn').disabled    = true;
     document.getElementById('d-start-btn').textContent = 'Waiting for host to start...';
 
-  // Guest listens for status → playing
-  const statusRef = db.ref('duels/' + code + '/status');
-  const statusFn  = statusRef.on('value', snap => {
-    if(snap.val() === 'playing') runDuelGame();
-  });
-  duelListeners.push({ ref: statusRef, fn: statusFn });
+    // Listen for host starting the game
+    const statusRef = db.ref('duels/' + code + '/status');
+    statusRef.on('value', snap => {
+      if(snap.val() === 'playing') runDuelGame();
+    });
+    duelListeners.push({ ref: statusRef, fn: null });
+
+    toast('✅ Joined! Waiting for host to start...');
+
+  } catch(err) {
+    console.error('joinLobby error:', err);
+    showErr('Failed to join: ' + err.message);
+    resetDuelFull();
+  }
 }
 
 function copyCode(){
