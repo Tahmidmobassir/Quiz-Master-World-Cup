@@ -185,20 +185,24 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
-      authDomain: "wcquizmaster-5cd79.firebaseapp.com",
-      databaseURL: "https://wcquizmaster-5cd79-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "wcquizmaster-5cd79",
-      storageBucket: "wcquizmaster-5cd79.firebasestorage.app",
-      messagingSenderId: "95528362739",
-      appId: "1:95528362739:web:1719a798676732c07c8d86"
-    };
-    firebase.initializeApp(firebaseConfig);
-    window._fbDB = firebase.database();
-    window._fbReady = true;
-    document.dispatchEvent(new Event('fb-ready'));
-    console.log('✅ Firebase Realtime DB connected');
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
+        authDomain: "wcquizmaster-5cd79.firebaseapp.com",
+        databaseURL: "https://wcquizmaster-5cd79-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "wcquizmaster-5cd79",
+        storageBucket: "wcquizmaster-5cd79.firebasestorage.app",
+        messagingSenderId: "95528362739",
+        appId: "1:95528362739:web:1719a798676732c07c8d86"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window._fbDB    = firebase.database();
+      window._fbReady = true;
+      console.log('✅ Firebase connected');
+    } catch(e) {
+      console.error('Firebase init error:', e);
+      window._fbReady = false;
+    }
   </script>
 </head>
 <body>
@@ -427,7 +431,10 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       <div class="invite-box" onclick="copyCode()">
         <p style="font-size:11px;font-weight:700;color:var(--team-text3);margin-bottom:4px;letter-spacing:1px">YOUR INVITE CODE (tap to copy)</p>
         <span class="invite-code" id="d-code">------</span>
-        <p style="font-size:12px;color:var(--team-text3);margin-top:4px">Share this with your opponent</p>
+        <p style="font-size:12px;color:var(--team-text3);margin-top:4px">Share with your opponent — they join from their device</p>
+      </div>
+      <div id="d-conn-status" style="text-align:center;font-size:12px;font-weight:600;color:var(--team-text3);margin-bottom:10px;padding:6px;background:var(--team-bg3);border-radius:var(--radius-sm)">
+        🟡 Setting up lobby...
       </div>
       <div class="vs-grid">
         <div class="player-slot">
@@ -437,14 +444,13 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
         </div>
         <div class="vs-txt">VS</div>
         <div class="player-slot" id="d-p2-slot">
-          <div class="p-avatar" style="background:var(--gray-200);color:var(--team-text3)">?</div>
+          <div class="p-avatar" style="background:var(--team-bg3);color:var(--team-text3)">?</div>
           <div class="p-name" style="color:var(--team-text3)">Waiting...</div>
           <div class="spinner" style="width:20px;height:20px;border-width:2px;margin:4px auto 0"></div>
         </div>
       </div>
-      <button class="btn btn-primary" id="d-start-btn" disabled onclick="startDuel()" style="margin-bottom:10px">Waiting for opponent...</button>
-      <button class="btn btn-ghost" onclick="simJoin()" style="font-size:13px">🤖 Simulate Opponent Joining (Demo)</button>
-      <p style="text-align:center;font-size:11px;color:var(--team-text3);margin-top:6px">In production, opponent joins using your code</p>
+      <button class="btn btn-primary" id="d-start-btn" disabled onclick="hostStartDuel()" style="margin-bottom:10px">Waiting for opponent...</button>
+      <button class="btn btn-ghost" onclick="resetDuelFull()" style="font-size:13px;margin-top:4px">✕ Cancel &amp; Go Back</button>
     </div>
 
     <!-- DUEL QUIZ -->
@@ -1167,12 +1173,18 @@ let duelRole      = null;  // 'host' or 'guest'
 let duelRoomRef   = null;  // Firebase ref for this room
 let duelListeners = [];    // track all onValue listeners for cleanup
 
-function fbReady(){ return window._fbReady === true; }
+function fbReady(){
+  if(!window._fbReady || !window._fbDB){
+    toast('❌ Not connected to server. Check your internet connection.');
+    return false;
+  }
+  return true;
+}
 
 function resetDuelFull(){
   clearInterval(dTimer);
   // Detach all Firebase listeners
-  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
+  duelListeners.forEach(({ref:r}) => { try{ if(r && r.off) r.off(); }catch(e){} });
   duelListeners = [];
   // If host, clean up room from Firebase
   if(duelRole==='host' && duelRoomRef){
@@ -1180,66 +1192,82 @@ function resetDuelFull(){
   }
   duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
   show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result');
-  document.getElementById('d-join-err').classList.remove('show');
+  const joinErr = document.getElementById('d-join-err');
+  if(joinErr) joinErr.classList.remove('show');
 }
 function resetDuel(){ resetDuelFull(); }
 
 async function createLobby(){
-  if(!fbReady()){ toast('⏳ Connecting to server, please wait...'); return; }
-  const db = window._fbDB;
+  if(!fbReady()) return;
 
-  duelCode = Math.floor(100000+Math.random()*900000).toString();
-  duelRole = 'host';
+  // Show loading state on button
+  const btn = document.querySelector('#d-lobby .btn-primary');
+  const origText = btn.textContent;
+  btn.textContent = 'Creating lobby...';
+  btn.disabled = true;
 
-  // Pick 10 questions now so both players get identical set
-  const qs = await pick10();
-  const qData = qs.map(q=>({ q:q.q, a:q.a, o:q.o }));
+  try {
+    const db = window._fbDB;
 
-  duelRoomRef = db.ref('duels/' + duelCode);
+    duelCode = Math.floor(100000 + Math.random()*900000).toString();
+    duelRole = 'host';
 
-  // Write room to Firebase
-  await duelRoomRef.set({
-    host:   { name: S.cu ? S.cu.name.split(' ')[0] : 'Host', score: 0, done: false },
-    guest:  null,
-    questions: qData,
-    status: 'waiting',   // waiting → playing → finished
-    startedAt: null
-  });
+    // Use a simple random slice of QS — no async IndexedDB needed here
+    const qs = shuffle([...QS]).slice(0, 10).map(q=>({ q:q.q, a:q.a, o:q.o }));
 
-  document.getElementById('d-code').textContent    = duelCode;
-  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'H';
-  document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  document.getElementById('d-conn-status').innerHTML = '🟢 Connected — waiting for opponent...';
-  document.getElementById('d-start-btn').disabled    = true;
-  document.getElementById('d-start-btn').textContent = 'Waiting for opponent...';
+    duelRoomRef = db.ref('duels/' + duelCode);
 
-  hide('d-lobby'); show('d-waiting');
+    await duelRoomRef.set({
+      host:      { name: S.cu ? S.cu.name.split(' ')[0] : 'Host', score: 0, done: false },
+      guest:     null,
+      questions: qs,
+      status:    'waiting',
+      startedAt: null
+    });
 
-  // Listen for guest joining
-  const guestRef = db.ref('duels/' + duelCode + '/guest');
-  const guestFn  = guestRef.on('value', snap => {
-    const guest = snap.val();
-    if(guest && guest.name){
-      duelOppJoined = true;
-      dOppName = guest.name;
-      document.getElementById('d-p2-slot').innerHTML =
-        `<div class="p-avatar" style="background:#7c3aed">${guest.name.charAt(0)}</div>
-         <div class="p-name">${guest.name}</div>
-         <span class="p-status ready">READY</span>`;
-      document.getElementById('d-start-btn').disabled    = false;
-      document.getElementById('d-start-btn').textContent = '▶ Start Duel Now!';
-      document.getElementById('d-conn-status').innerHTML = '🟢 Opponent joined! Ready to start.';
-      toast(guest.name + ' joined the lobby! ⚔️');
-    }
-  });
-  duelListeners.push({ ref: guestRef, fn: guestFn });
+    // Update UI
+    document.getElementById('d-code').textContent    = duelCode;
+    document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'H';
+    document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
+    document.getElementById('d-conn-status').innerHTML = '🟢 Lobby created — share your code!';
+    document.getElementById('d-start-btn').disabled    = true;
+    document.getElementById('d-start-btn').textContent = 'Waiting for opponent...';
 
-  // Listen in case guest starts (if guest somehow triggers start)
-  const statusRef = db.ref('duels/' + duelCode + '/status');
-  const statusFn  = statusRef.on('value', snap => {
-    if(snap.val() === 'playing') runDuelGame();
-  });
-  duelListeners.push({ ref: statusRef, fn: statusFn });
+    hide('d-lobby');
+    show('d-waiting');
+
+    // Listen for guest joining
+    const guestRef = db.ref('duels/' + duelCode + '/guest');
+    guestRef.on('value', snap => {
+      const guest = snap.val();
+      if(guest && guest.name && !duelOppJoined){
+        duelOppJoined = true;
+        dOppName = guest.name;
+        document.getElementById('d-p2-slot').innerHTML =
+          `<div class="p-avatar" style="background:#7c3aed">${guest.name.charAt(0)}</div>
+           <div class="p-name">${guest.name}</div>
+           <span class="p-status ready">READY</span>`;
+        document.getElementById('d-start-btn').disabled    = false;
+        document.getElementById('d-start-btn').textContent = '▶ Start Duel Now!';
+        document.getElementById('d-conn-status').innerHTML = '🟢 ' + guest.name + ' joined! Ready to start.';
+        toast(guest.name + ' joined the lobby! ⚔️');
+      }
+    });
+    duelListeners.push({ ref: guestRef, fn: null });
+
+    // Listen for status change → playing
+    const statusRef = db.ref('duels/' + duelCode + '/status');
+    statusRef.on('value', snap => {
+      if(snap.val() === 'playing') runDuelGame();
+    });
+    duelListeners.push({ ref: statusRef, fn: null });
+
+  } catch(err) {
+    console.error('createLobby error:', err);
+    toast('❌ Failed to create lobby: ' + err.message);
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
 }
 
 async function joinLobby(){
@@ -1324,7 +1352,7 @@ async function runDuelGame(){
   const db = window._fbDB;
 
   // Detach waiting-room listeners
-  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
+  duelListeners.forEach(({ref:r}) => { try{ if(r && r.off) r.off(); }catch(e){} });
   duelListeners = [];
 
   // Fetch questions and opponent name from Firebase
@@ -1345,19 +1373,18 @@ async function runDuelGame(){
   // Listen to opponent's score in real-time
   const oppScorePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/score';
   const oppRef = db.ref(oppScorePath);
-  const oppFn  = oppRef.on('value', snap => {
-    if(snap.val() !== null) dp2 = snap.val();
-    document.getElementById('dq-p2s').textContent = dp2;
+  oppRef.on('value', snap => {
+    if(snap.val() !== null){ dp2 = snap.val(); document.getElementById('dq-p2s').textContent = dp2; }
   });
-  duelListeners.push({ ref: oppRef, fn: oppFn });
+  duelListeners.push({ ref: oppRef, fn: null });
 
   // Listen for opponent finishing
   const oppDonePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/done';
   const oppDoneRef = db.ref(oppDonePath);
-  const oppDoneFn  = oppDoneRef.on('value', snap => {
+  oppDoneRef.on('value', snap => {
     if(snap.val() === true && duelIdx >= duelQs.length) endDuel();
   });
-  duelListeners.push({ ref: oppDoneRef, fn: oppDoneFn });
+  duelListeners.push({ ref: oppDoneRef, fn: null });
 
   showDuelQ();
 
@@ -1424,7 +1451,7 @@ async function answerDuel(chosen, correct, btn){
 async function endDuel(){
   clearInterval(dTimer);
   // Detach all listeners
-  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
+  duelListeners.forEach(({ref:r}) => { try{ if(r && r.off) r.off(); }catch(e){} });
   duelListeners = [];
 
   // Final score sync from Firebase
@@ -1549,12 +1576,8 @@ async function boot(){
     '<p style="font-size:13px;color:var(--team-text3)">Loading database...</p></div>';
 
   try {
-    // Show Firebase connection status in duel screen when available
-    document.addEventListener('fb-ready', ()=>{
-      console.log('Firebase ready!');
-      const el = document.getElementById('d-conn-status');
-      if(el) el.innerHTML = '🟢 Connected to server';
-    });
+    // Firebase is already initialised synchronously in <head>
+    // No listener needed — _fbReady is set before this runs
     await initDB();
 
     // Seed demo players (only if they don't exist yet)
