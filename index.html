@@ -181,19 +181,10 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
 .start-desc{font-size:14px;color:var(--team-text2);line-height:1.6;margin-bottom:20px}
 .rules-card{background:var(--team-bg3);border:1.5px solid var(--team-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--team-text2);line-height:1.7}
 </style>
-  <!-- Firebase Realtime Database SDK -->
-  <script type="importmap">
-  {
-    "imports": {
-      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
-      "firebase/database": "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"
-    }
-  }
-  </script>
-  <script type="module">
-    import { initializeApp } from "firebase/app";
-    import { getDatabase, ref, set, get, update, remove, onValue, off } from "firebase/database";
-
+  <!-- Firebase Compat SDK (global, no imports needed) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
       authDomain: "wcquizmaster-5cd79.firebaseapp.com",
@@ -203,13 +194,11 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       messagingSenderId: "95528362739",
       appId: "1:95528362739:web:1719a798676732c07c8d86"
     };
-
-    const fbApp = initializeApp(firebaseConfig);
-    const db    = getDatabase(fbApp);
-
-    // Expose to global so main script can use them
-    window._fb = { db, ref, set, get, update, remove, onValue, off };
+    firebase.initializeApp(firebaseConfig);
+    window._fbDB = firebase.database();
+    window._fbReady = true;
     document.dispatchEvent(new Event('fb-ready'));
+    console.log('✅ Firebase Realtime DB connected');
   </script>
 </head>
 <body>
@@ -1178,16 +1167,16 @@ let duelRole      = null;  // 'host' or 'guest'
 let duelRoomRef   = null;  // Firebase ref for this room
 let duelListeners = [];    // track all onValue listeners for cleanup
 
-function fbReady(){ return window._fb && window._fb.db; }
+function fbReady(){ return window._fbReady === true; }
 
 function resetDuelFull(){
   clearInterval(dTimer);
   // Detach all Firebase listeners
-  duelListeners.forEach(({ref, fn}) => { try{ window._fb.off(ref, fn); }catch(e){} });
+  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
   duelListeners = [];
   // If host, clean up room from Firebase
   if(duelRole==='host' && duelRoomRef){
-    try{ window._fb.remove(duelRoomRef); }catch(e){}
+    try{ duelRoomRef.remove(); }catch(e){}
   }
   duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
   show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result');
@@ -1197,7 +1186,7 @@ function resetDuel(){ resetDuelFull(); }
 
 async function createLobby(){
   if(!fbReady()){ toast('⏳ Connecting to server, please wait...'); return; }
-  const { db, ref, set, onValue } = window._fb;
+  const db = window._fbDB;
 
   duelCode = Math.floor(100000+Math.random()*900000).toString();
   duelRole = 'host';
@@ -1206,10 +1195,10 @@ async function createLobby(){
   const qs = await pick10();
   const qData = qs.map(q=>({ q:q.q, a:q.a, o:q.o }));
 
-  duelRoomRef = ref(db, 'duels/' + duelCode);
+  duelRoomRef = db.ref('duels/' + duelCode);
 
   // Write room to Firebase
-  await set(duelRoomRef, {
+  await duelRoomRef.set({
     host:   { name: S.cu ? S.cu.name.split(' ')[0] : 'Host', score: 0, done: false },
     guest:  null,
     questions: qData,
@@ -1227,8 +1216,8 @@ async function createLobby(){
   hide('d-lobby'); show('d-waiting');
 
   // Listen for guest joining
-  const guestRef = ref(db, 'duels/' + duelCode + '/guest');
-  const guestFn  = onValue(guestRef, snap => {
+  const guestRef = db.ref('duels/' + duelCode + '/guest');
+  const guestFn  = guestRef.on('value', snap => {
     const guest = snap.val();
     if(guest && guest.name){
       duelOppJoined = true;
@@ -1246,8 +1235,8 @@ async function createLobby(){
   duelListeners.push({ ref: guestRef, fn: guestFn });
 
   // Listen in case guest starts (if guest somehow triggers start)
-  const statusRef = ref(db, 'duels/' + duelCode + '/status');
-  const statusFn  = onValue(statusRef, snap => {
+  const statusRef = db.ref('duels/' + duelCode + '/status');
+  const statusFn  = statusRef.on('value', snap => {
     if(snap.val() === 'playing') runDuelGame();
   });
   duelListeners.push({ ref: statusRef, fn: statusFn });
@@ -1264,10 +1253,10 @@ async function joinLobby(){
     errEl.classList.add('show'); return;
   }
 
-  const { db, ref, get, set, onValue } = window._fb;
+  const db = window._fbDB;
 
   // Check room exists
-  const roomSnap = await get(ref(db, 'duels/' + code));
+  const roomSnap = await db.ref('duels/' + code).once('value');
   if(!roomSnap.exists()){
     errEl.textContent = 'Room not found. Check the code and try again.';
     errEl.classList.add('show'); return;
@@ -1288,7 +1277,7 @@ async function joinLobby(){
   duelRoomRef = ref(db, 'duels/' + code);
 
   // Write guest into room
-  await set(ref(db, 'duels/' + code + '/guest'), {
+  await db.ref('duels/' + code + '/guest').set({
     name: S.cu ? S.cu.name.split(' ')[0] : 'Guest', score: 0, done: false
   });
 
@@ -1306,8 +1295,8 @@ async function joinLobby(){
   hide('d-lobby'); show('d-waiting');
 
   // Guest listens for status → playing
-  const statusRef = ref(db, 'duels/' + code + '/status');
-  const statusFn  = onValue(statusRef, snap => {
+  const statusRef = db.ref('duels/' + code + '/status');
+  const statusFn  = statusRef.on('value', snap => {
     if(snap.val() === 'playing') runDuelGame();
   });
   duelListeners.push({ ref: statusRef, fn: statusFn });
@@ -1322,9 +1311,9 @@ function copyCode(){
 
 async function hostStartDuel(){
   if(!duelOppJoined){ toast('Waiting for opponent to join!'); return; }
-  const { db, ref, update } = window._fb;
+  const db = window._fbDB;
   // Signal both players to start
-  await update(ref(db, 'duels/' + duelCode), {
+  await db.ref('duels/' + duelCode).update({
     status: 'playing',
     startedAt: Date.now()
   });
@@ -1332,14 +1321,14 @@ async function hostStartDuel(){
 }
 
 async function runDuelGame(){
-  const { db, ref, get, update, onValue } = window._fb;
+  const db = window._fbDB;
 
   // Detach waiting-room listeners
-  duelListeners.forEach(({ref:r, fn}) => { try{ window._fb.off(r, fn); }catch(e){} });
+  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
   duelListeners = [];
 
   // Fetch questions and opponent name from Firebase
-  const snap = await get(ref(db, 'duels/' + duelCode));
+  const snap = await db.ref('duels/' + duelCode).once('value');
   const room  = snap.val();
   duelQs  = room.questions;
   dOppName = duelRole === 'host' ? room.guest.name : room.host.name;
@@ -1355,8 +1344,8 @@ async function runDuelGame(){
 
   // Listen to opponent's score in real-time
   const oppScorePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/score';
-  const oppRef = ref(db, oppScorePath);
-  const oppFn  = onValue(oppRef, snap => {
+  const oppRef = db.ref(oppScorePath);
+  const oppFn  = oppRef.on('value', snap => {
     if(snap.val() !== null) dp2 = snap.val();
     document.getElementById('dq-p2s').textContent = dp2;
   });
@@ -1364,8 +1353,8 @@ async function runDuelGame(){
 
   // Listen for opponent finishing
   const oppDonePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/done';
-  const oppDoneRef = ref(db, oppDonePath);
-  const oppDoneFn  = onValue(oppDoneRef, snap => {
+  const oppDoneRef = db.ref(oppDonePath);
+  const oppDoneFn  = oppDoneRef.on('value', snap => {
     if(snap.val() === true && duelIdx >= duelQs.length) endDuel();
   });
   duelListeners.push({ ref: oppDoneRef, fn: oppDoneFn });
@@ -1417,14 +1406,14 @@ async function answerDuel(chosen, correct, btn){
     document.getElementById('d-fb').style.color = '#F87171';
   }
   // Push my score to Firebase so opponent sees it live
-  const { db, ref, update } = window._fb;
+  const db = window._fbDB;
   const myPath = 'duels/' + duelCode + '/' + duelRole;
-  await update(ref(db, myPath), { score: dp1 });
+  await db.ref(myPath).update({ score: dp1 });
 
   duelIdx++;
   if(duelIdx >= duelQs.length){
     // Mark myself as done
-    await update(ref(db, myPath), { done: true });
+    await db.ref(myPath).update({ done: true });
     clearInterval(dTimer);
     endDuel();
   } else if(dTimeLeft > 0){
@@ -1435,18 +1424,18 @@ async function answerDuel(chosen, correct, btn){
 async function endDuel(){
   clearInterval(dTimer);
   // Detach all listeners
-  duelListeners.forEach(({ref:r, fn}) => { try{ window._fb.off(r, fn); }catch(e){} });
+  duelListeners.forEach(({ref:r, fn}) => { try{ r.off('value', fn); }catch(e){} });
   duelListeners = [];
 
   // Final score sync from Firebase
-  const { db, ref, get, remove } = window._fb;
-  const snap = await get(ref(db, 'duels/' + duelCode));
+  const db = window._fbDB;
+  const snap = await db.ref('duels/' + duelCode).once('value');
   if(snap.exists()){
     const room = snap.val();
     dp1 = (duelRole==='host' ? room.host?.score : room.guest?.score) || dp1;
     dp2 = (duelRole==='host' ? room.guest?.score : room.host?.score) || dp2;
     // Host cleans up the room after a short delay
-    if(duelRole==='host') setTimeout(()=>{ try{ remove(ref(db,'duels/'+duelCode)); }catch(e){} }, 5000);
+    if(duelRole==='host') setTimeout(()=>{ try{ db.ref('duels/'+duelCode).remove(); }catch(e){} }, 5000);
   }
 
   const win=dp1>dp2, draw=dp1===dp2;
@@ -1560,8 +1549,9 @@ async function boot(){
     '<p style="font-size:13px;color:var(--team-text3)">Loading database...</p></div>';
 
   try {
-    // Show Firebase connection status
+    // Show Firebase connection status in duel screen when available
     document.addEventListener('fb-ready', ()=>{
+      console.log('Firebase ready!');
       const el = document.getElementById('d-conn-status');
       if(el) el.innerHTML = '🟢 Connected to server';
     });
