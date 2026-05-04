@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>World Cup Quiz Master</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --team-primary:#E2136E;
+  --team-primary-dark:#B50D56;
+  --team-primary-light:#FF82B4;
+  --team-bg:#1a0010;
+  --team-bg2:#2d0020;
+  --team-bg3:#3d0030;
+  --team-text:#FFFFFF;
+  --team-text2:rgba(255,255,255,0.70);
+  --team-text3:rgba(255,255,255,0.42);
+  --team-border:rgba(226,19,110,0.30);
+  --team-input-bg:rgba(255,255,255,0.08);
+  --font-display:'Bebas Neue',cursive;--font-body:'Outfit',sans-serif;
+  --radius:12px;--radius-sm:8px;--radius-lg:20px;
+  --transition:all 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+.arg-theme{
+  --team-primary:#3A8FD4;
+  --team-primary-dark:#1A6DB0;
+  --team-primary-light:#74ACDF;
+  --team-bg:#001830;
+  --team-bg2:#00274A;
+  --team-bg3:#003868;
+  --team-text:#FFFFFF;
+  --team-text2:rgba(255,255,255,0.70);
+  --team-text3:rgba(255,255,255,0.42);
+  --team-border:rgba(116,172,223,0.32);
+  --team-input-bg:rgba(255,255,255,0.09);
+}
+.bra-theme{
+  --team-primary:#00A83E;
+  --team-primary-dark:#007A2C;
+  --team-primary-light:#33C066;
+  --team-bg:#001608;
+  --team-bg2:#002812;
+  --team-bg3:#003A1C;
+  --team-text:#FFFFFF;
+  --team-text2:rgba(255,255,255,0.70);
+  --team-text3:rgba(255,255,255,0.42);
+  --team-border:rgba(0,168,62,0.30);
+  --team-input-bg:rgba(255,255,255,0.09);
+}
+html,body{height:100%;width:100%;background:#111;font-family:var(--font-body)}
+#app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--team-bg);position:relative;overflow-x:hidden;transition:background 0.5s ease,--team-bg 0.5s;box-shadow:0 0 60px rgba(0,0,0,0.5);}
+.screen{display:none;min-height:100vh;flex-direction:column;animation:fadeIn 0.3s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.scroll-area{flex:1;overflow-y:auto;padding:16px 16px 0;-webkit-overflow-scrolling:touch}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:var(--radius);font-family:var(--font-body);font-size:15px;font-weight:700;cursor:pointer;border:none;transition:var(--transition);width:100%;letter-spacing:0.3px;line-height:1}
+.btn-primary{background:var(--team-primary);color:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.35)}
+.btn-primary:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-primary:active{transform:scale(0.98)}
+.btn-ghost{background:var(--team-bg2);color:var(--team-text);border:1.5px solid var(--team-border)}
+.btn-ghost:hover{background:var(--team-bg3)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none!important;filter:none!important}
+.card{background:var(--team-bg2);border-radius:var(--radius-lg);padding:1.25rem;border:1px solid var(--team-border)}
+input[type=text],input[type=email],input[type=tel],input[type=password]{width:100%;padding:13px 16px;border:1.5px solid var(--team-border);border-radius:var(--radius-sm);font-family:var(--font-body);font-size:15px;background:var(--team-input-bg);color:var(--team-text);transition:var(--transition);outline:none}
+input::placeholder{color:var(--team-text3)}
+input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,255,0.07)}
+.field-group{margin-bottom:14px}
+.field-label{font-size:13px;font-weight:600;color:var(--team-text2);margin-bottom:5px;display:block}
+.err{color:#FF6B9D;font-size:12px;margin-top:4px;display:none}
+.err.show{display:block}
+.tab-row{display:flex;gap:8px;margin-bottom:1.25rem}
+.tab{flex:1;padding:10px;text-align:center;font-weight:700;font-size:14px;border-radius:var(--radius-sm);cursor:pointer;transition:var(--transition);border:1.5px solid var(--team-border);background:var(--team-bg2);color:var(--team-text2)}
+.tab.active{background:var(--team-primary);color:#fff;border-color:var(--team-primary)}
+.logo-area{text-align:center;padding:20px 0 8px}
+.logo-text{font-family:var(--font-display);font-size:36px;color:var(--team-primary);letter-spacing:3px;line-height:1;display:block}
+.logo-sub{font-size:11px;font-weight:700;color:var(--team-text3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.team-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:1rem 0}
+.team-card{border-radius:20px;overflow:hidden;cursor:pointer;transition:var(--transition);border:3px solid transparent;text-align:center;padding:16px 8px}
+.team-card:hover{transform:scale(1.02)}
+.team-card.selected{border-color:rgba(255,255,255,0.9);transform:scale(1.03);box-shadow:0 8px 28px rgba(0,0,0,0.5)}
+.tc-arg{background:linear-gradient(160deg,#74ACDF 0%,#cce5f8 40%,#fff 60%,#74ACDF 100%)}
+.tc-bra{background:linear-gradient(160deg,#009C3B 0%,#66cc88 40%,#FFDF00 70%,#002776 100%)}
+.flag-big{font-size:52px;display:block;margin-bottom:6px}
+.team-name-lbl{font-family:var(--font-display);font-size:22px;letter-spacing:3px}
+.team-sub-lbl{font-size:11px;font-weight:600;margin-top:2px;opacity:0.75}
+.nav-bar{display:flex;background:var(--team-bg2);padding:8px 12px 12px;gap:2px;border-top:1px solid var(--team-border);position:sticky;bottom:0;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:var(--transition);font-size:9px;font-weight:700;color:var(--team-text3);border:none;background:transparent;letter-spacing:0.5px;text-transform:uppercase}
+.nav-item.active{background:var(--team-primary);color:#fff}
+.nav-icon{font-size:18px;line-height:1}
+.home-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.home-pts{font-family:var(--font-display);font-size:24px;color:var(--team-primary)}
+.team-banner{border-radius:16px;overflow:hidden;padding:20px;text-align:center;margin-bottom:14px}
+.arg-banner{background:linear-gradient(160deg,#001B3A 0%,#1A6DB0 30%,#74ACDF 50%,#fff 55%,#74ACDF 60%,#1A6DB0 70%,#001B3A 100%)}
+.bra-banner{background:linear-gradient(135deg,#003D18,#009C3B,#FFDF00,#009C3B,#002776)}
+.banner-flag{font-size:48px;display:block;margin-bottom:6px}
+.banner-name{font-family:var(--font-display);font-size:26px;letter-spacing:4px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.5)}
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-box{background:var(--team-bg2);border-radius:var(--radius);padding:16px;text-align:center;border:1px solid var(--team-border)}
+.stat-val{font-family:var(--font-display);font-size:36px;color:var(--team-primary);line-height:1.1}
+.stat-lbl{font-size:11px;color:var(--team-text3);font-weight:700;letter-spacing:1px;margin-top:2px}
+.mode-card{background:var(--team-bg2);border-radius:var(--radius-lg);padding:16px;margin-bottom:10px;cursor:pointer;border:1.5px solid var(--team-border);transition:var(--transition);display:flex;align-items:center;gap:14px}
+.mode-card:hover{border-color:var(--team-primary);background:var(--team-bg3);transform:translateX(3px)}
+.mode-card.featured{border-color:var(--team-primary);background:var(--team-bg3)}
+.mode-icon{font-size:38px;flex-shrink:0}
+.mode-title{font-weight:800;font-size:16px;color:var(--team-text)}
+.mode-desc{font-size:12px;color:var(--team-text2);margin-top:2px}
+.mode-arrow{margin-left:auto;font-size:22px;color:var(--team-primary)}
+.q-progress{display:flex;gap:5px;margin-bottom:10px}
+.q-dot{height:5px;flex:1;border-radius:3px;background:var(--team-bg3);transition:var(--transition)}
+.q-dot.done{background:var(--team-primary)}
+.q-dot.active{background:var(--team-primary);opacity:0.55}
+.timer-display{text-align:center;margin-bottom:4px}
+.timer-num{font-family:var(--font-display);font-size:56px;color:var(--team-primary);line-height:1}
+.timer-num.urgent{color:#FF4444;animation:pulse 0.5s infinite}
+.timer-bar-wrap{height:6px;background:var(--team-bg3);border-radius:3px;margin-bottom:14px;overflow:hidden}
+.timer-fill{height:100%;background:var(--team-primary);border-radius:3px;transition:width 1s linear}
+.q-label{font-size:11px;font-weight:700;color:var(--team-text3);letter-spacing:2px;text-align:center;margin-bottom:8px}
+.q-text{font-size:17px;font-weight:700;color:var(--team-text);line-height:1.45;text-align:center;min-height:64px;display:flex;align-items:center;justify-content:center;padding:0 4px;margin-bottom:16px}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.opt-btn{padding:14px 10px;border-radius:var(--radius);font-family:var(--font-body);font-size:13px;font-weight:600;text-align:center;cursor:pointer;border:1.5px solid var(--team-border);background:var(--team-bg2);color:var(--team-text);transition:var(--transition);line-height:1.3;min-height:56px}
+.opt-btn:hover:not(:disabled){border-color:var(--team-primary);background:var(--team-bg3)}
+.opt-btn.correct{background:#064E2A!important;border-color:#22C55E!important;color:#86EFAC!important}
+.opt-btn.wrong{background:#4E0606!important;border-color:#EF4444!important;color:#FCA5A5!important}
+.opt-btn.show-correct{background:#064E2A!important;border-color:#22C55E!important;color:#86EFAC!important}
+.feedback{text-align:center;font-size:14px;font-weight:700;min-height:22px;transition:all 0.2s}
+.result-wrap{padding:20px 16px;text-align:center}
+.result-emoji{font-size:72px;display:block;margin-bottom:8px}
+.result-score{font-family:var(--font-display);font-size:72px;color:var(--team-primary);line-height:1}
+.result-lbl{font-size:15px;color:var(--team-text2);margin-bottom:16px}
+.pts-pill{display:inline-flex;align-items:center;gap:8px;background:var(--team-primary);color:#fff;padding:12px 24px;border-radius:30px;font-weight:800;font-size:16px;margin:0 auto 20px}
+.invite-box{background:var(--team-bg3);border:2px dashed var(--team-primary);border-radius:var(--radius);padding:16px;text-align:center;cursor:pointer;margin:12px 0;transition:var(--transition)}
+.invite-box:hover{background:var(--team-bg2)}
+.invite-code{font-family:var(--font-display);font-size:38px;letter-spacing:10px;color:var(--team-primary);display:block}
+.vs-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin:16px 0}
+.player-slot{text-align:center}
+.p-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:26px;color:#fff;margin:0 auto 6px}
+.p-name{font-size:13px;font-weight:700;color:var(--team-text)}
+.p-status{font-size:10px;font-weight:700;padding:2px 10px;border-radius:10px;display:inline-block;margin-top:3px}
+.ready{background:rgba(34,197,94,0.2);color:#4ADE80}
+.vs-txt{font-family:var(--font-display);font-size:36px;color:var(--team-text3);text-align:center}
+.score-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:10px}
+.score-box{background:var(--team-bg2);border-radius:var(--radius);padding:12px 8px;text-align:center;border:1px solid var(--team-border)}
+.score-name{font-size:11px;font-weight:700;color:var(--team-text3);letter-spacing:0.5px}
+.score-val{font-family:var(--font-display);font-size:36px;color:var(--team-primary);line-height:1.1}
+.lb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--team-bg2);border-radius:var(--radius);margin-bottom:8px;border:1px solid var(--team-border)}
+.lb-row.me{border:2px solid var(--team-primary)}
+.rank-badge{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.r1{background:#FFD700;color:#7a5a00}
+.r2{background:#C0C0C0;color:#333}
+.r3{background:#CD7F32;color:#fff}
+.r-n{background:var(--team-bg3);color:var(--team-text3)}
+.lb-avatar{width:36px;height:36px;border-radius:50%;background:var(--team-bg3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;color:var(--team-primary)}
+.lb-name{flex:1;font-weight:600;font-size:14px;color:var(--team-text)}
+.lb-pts{font-family:var(--font-display);font-size:22px;color:var(--team-primary)}
+.lb-pts span{font-size:11px;color:var(--team-text3);font-family:var(--font-body)}
+.battle-bar{height:36px;border-radius:var(--radius-sm);display:flex;overflow:hidden;margin:8px 0}
+.arg-seg{background:#3A8FD4;display:flex;align-items:center;padding:0 10px;font-weight:700;font-size:13px;color:#fff;transition:flex 0.5s ease}
+.bra-seg{background:#009C3B;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-weight:700;font-size:13px;color:#fff;transition:flex 0.5s ease}
+.prof-avatar{width:80px;height:80px;border-radius:50%;background:var(--team-primary);color:#fff;font-family:var(--font-display);font-size:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:0.5px}
+.badge-arg{background:rgba(58,143,212,0.2);color:#74ACDF;border:1px solid rgba(58,143,212,0.3)}
+.badge-bra{background:rgba(0,168,62,0.2);color:#33C066;border:1px solid rgba(0,168,62,0.3)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;transition:all 0.3s ease;opacity:0;white-space:nowrap;max-width:320px;border:1px solid rgba(255,255,255,0.12)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.page-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.back-btn{width:38px;height:38px;border-radius:10px;background:var(--team-bg2);border:1.5px solid var(--team-border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;flex-shrink:0;transition:var(--transition);color:var(--team-text)}
+.back-btn:hover{background:var(--team-bg3)}
+.section-title{font-family:var(--font-display);font-size:22px;color:var(--team-text);letter-spacing:1px;margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--team-text2);margin-bottom:14px}
+.spinner{width:32px;height:32px;border:3px solid var(--team-bg3);border-top-color:var(--team-primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.sh{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;margin-top:4px}
+.sh-arg{color:#74ACDF}
+.sh-bra{color:#33C066}
+.start-hero{text-align:center;padding:24px 0 16px}
+.start-icon{font-size:72px;display:block;margin-bottom:12px}
+.start-title{font-family:var(--font-display);font-size:28px;color:var(--team-text);letter-spacing:2px;margin-bottom:8px}
+.start-desc{font-size:14px;color:var(--team-text2);line-height:1.6;margin-bottom:20px}
+.rules-card{background:var(--team-bg3);border:1.5px solid var(--team-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--team-text2);line-height:1.7}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="toast" id="toast"></div>
+
+<!-- ====== AUTH ====== -->
+<div class="screen active" id="screen-auth">
+  <div class="scroll-area">
+    <div class="logo-area">
+      <span class="logo-text">🏆 WORLD CUP
+      <br>QUIZ MASTER</span>
+      <span class="logo-sub">ARG 🆚 BRA Edition</span>
+    </div>
+    <div class="tab-row" id="auth-tabs">
+      <button class="tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="tab" onclick="switchAuthTab('register')">Register</button>
+    </div>
+    <!-- LOGIN -->
+    <div id="login-form" class="card">
+      <div class="field-group">
+        <label class="field-label">Email Address</label>
+        <input type="email" id="li-email" placeholder="you@example.com">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Password</label>
+        <input type="password" id="li-pass" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()">
+        <span class="err" id="li-err">Invalid email or password</span>
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+      <p style="text-align:center;font-size:12px;color:var(--team-text3);margin-top:12px">Don't have an account? <a href="#" onclick="switchAuthTab('register')" style="color:var(--team-primary);font-weight:700;text-decoration:none">Register here →</a></p>
+    </div>
+    <!-- REGISTER -->
+    <div id="register-form" class="card" style="display:none">
+      <div class="field-group">
+        <label class="field-label">Full Name</label>
+        <input type="text" id="rg-name" placeholder="Your full name">
+        <span class="err" id="rg-name-err">Name is required</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email Address</label>
+        <input type="email" id="rg-email" placeholder="you@example.com">
+        <span class="err" id="rg-email-err">Valid email required</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input type="tel" id="rg-phone" placeholder="+880 1XXX-XXXXXX">
+        <span class="err" id="rg-phone-err">Phone number required</span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Password</label>
+        <input type="password" id="rg-pass" placeholder="Min 6 chars, include a number">
+        <span class="err" id="rg-pass-err"></span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Confirm Password</label>
+        <input type="password" id="rg-pass2" placeholder="Re-enter your password" onkeydown="if(event.key==='Enter')doRegister()">
+        <span class="err" id="rg-pass2-err"></span>
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+    </div>
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- ====== TEAM SELECT ====== -->
+<div class="screen" id="screen-team">
+  <div class="scroll-area">
+    <div class="logo-area">
+      <span class="logo-text">🏆 WORLD CUP QUIZ MASTER</span>
+    </div>
+    <p style="text-align:center;font-size:17px;font-weight:800;color:var(--team-text);margin:8px 0 4px">Pick Your Team</p>
+    <p style="text-align:center;font-size:13px;color:var(--team-text3);margin-bottom:4px">Your points will count toward your team's total score</p>
+    <div class="team-grid">
+      <div class="team-card tc-arg" id="tc-arg" onclick="selectTeam('ARG')">
+        <span class="flag-big">🇦🇷</span>
+        <div class="team-name-lbl" style="color:#1D6FAF">ARGENTINA</div>
+        <div class="team-sub-lbl" style="color:#5A8FBF">La Albiceleste</div>
+        <div style="margin-top:8px;font-size:11px;font-weight:700;color:#1D6FAF">3x World Champions</div>
+      </div>
+      <div class="team-card tc-bra" id="tc-bra" onclick="selectTeam('BRA')">
+        <span class="flag-big">🇧🇷</span>
+        <div class="team-name-lbl" style="color:#002776">BRAZIL</div>
+        <div class="team-sub-lbl" style="color:#003a20">A Seleção</div>
+        <div style="margin-top:8px;font-size:11px;font-weight:700;color:#002776">5x World Champions</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="confirm-team-btn" disabled onclick="confirmTeam()">Confirm My Team</button>
+    <p style="text-align:center;font-size:12px;color:var(--team-text3);margin-top:10px;padding-bottom:20px">You can change your team anytime from Profile</p>
+  </div>
+</div>
+
+<!-- ====== HOME ====== -->
+<div class="screen" id="screen-home">
+  <div class="scroll-area">
+    <div class="home-header">
+      <div>
+        <p style="font-size:11px;color:var(--team-text3);font-weight:700;letter-spacing:1px">WELCOME BACK</p>
+        <p style="font-size:20px;font-weight:800;color:var(--team-text)" id="h-uname">Player</p>
+      </div>
+      <div style="text-align:right">
+        <span class="badge badge-arg" id="h-team-badge">ARG</span>
+        <div class="home-pts" id="h-pts">0 PTS</div>
+      </div>
+    </div>
+    <div class="team-banner arg-banner" id="h-banner">
+      <span class="banner-flag" id="h-flag">🇦🇷</span>
+      <div class="banner-name" id="h-bname" style="color:#1D6FAF">ARGENTINA</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="h-correct">0</div><div class="stat-lbl">CORRECT</div></div>
+      <div class="stat-box"><div class="stat-val" id="h-played">0</div><div class="stat-lbl">QUIZZES</div></div>
+    </div>
+    <p class="section-title">Game Modes</p>
+    <div class="mode-card featured" onclick="navTo('solo')">
+      <div class="mode-icon">🧠</div>
+      <div><div class="mode-title">Solo Quiz</div><div class="mode-desc">10 questions · 60 seconds · 2 pts each</div></div>
+      <div class="mode-arrow">›</div>
+    </div>
+    <div class="mode-card" onclick="navTo('duel')">
+      <div class="mode-icon">⚔️</div>
+      <div><div class="mode-title">Duel Mode</div><div class="mode-desc">Challenge a friend · 10 questions · 60s</div></div>
+      <div class="mode-arrow" style="color:var(--gray-300)">›</div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item active" onclick="navTo('home')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" onclick="navTo('solo')"><span class="nav-icon">🧠</span>Solo</button>
+    <button class="nav-item" onclick="navTo('duel')"><span class="nav-icon">⚔️</span>Duel</button>
+    <button class="nav-item" onclick="navTo('board')"><span class="nav-icon">🏆</span>Ranks</button>
+    <button class="nav-item" onclick="navTo('profile')"><span class="nav-icon">👤</span>Me</button>
+  </div>
+</div>
+
+<!-- ====== SOLO QUIZ ====== -->
+<div class="screen" id="screen-solo">
+  <div class="scroll-area" id="solo-scroll">
+    <div class="page-head">
+      <div class="back-btn" onclick="navTo('home')">←</div>
+      <div><div style="font-weight:800;font-size:16px;color:var(--team-text)">Solo Quiz</div><div style="font-size:12px;color:var(--team-text3)">10 questions · 60 seconds</div></div>
+      <div style="margin-left:auto;font-family:'Bebas Neue';font-size:20px;color:var(--team-primary)" id="solo-pts-hdr">0 PTS</div>
+    </div>
+
+    <!-- START -->
+    <div id="solo-start">
+      <div class="start-hero">
+        <span class="start-icon">🧠</span>
+        <div class="start-title">READY TO QUIZ?</div>
+        <p class="start-desc">Answer 10 football questions in 60 seconds.<br>Earn <strong>2 points</strong> per correct answer.<br>Questions you've answered won't repeat!</p>
+      </div>
+      <div class="rules-card">
+        📋 <strong>How it works:</strong><br>
+        • 10 questions drawn from our 120+ question bank<br>
+        • 60-second timer for all 10 questions<br>
+        • Questions answered before won't show again<br>
+        • Pool resets when you exhaust all questions
+      </div>
+      <button class="btn btn-primary" onclick="startSolo()">Start Quiz!</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="solo-quiz" style="display:none">
+      <div class="quiz-wrap" style="padding:0">
+        <div class="q-progress" id="s-dots"></div>
+        <div class="timer-display"><div class="timer-num" id="s-timer">60</div></div>
+        <div class="timer-bar-wrap"><div class="timer-fill" id="s-tbar" style="width:100%"></div></div>
+        <div class="q-label" id="s-qnum">Question 1 of 10</div>
+        <div class="q-text" id="s-qtxt">Loading...</div>
+        <div class="options" id="s-opts"></div>
+        <div class="feedback" id="s-fb"></div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="solo-result" style="display:none">
+      <div class="result-wrap">
+        <span class="result-emoji" id="s-emoji">🎉</span>
+        <div class="result-score" id="s-rscore">0/10</div>
+        <div class="result-lbl">Correct Answers</div>
+        <div class="pts-pill" id="s-rpts">⭐ +0 Points</div>
+        <div class="stat-row" style="margin-bottom:14px">
+          <div class="stat-box"><div class="stat-val" id="s-rcorrect">0</div><div class="stat-lbl">CORRECT</div></div>
+          <div class="stat-box"><div class="stat-val" id="s-rtime">0s</div><div class="stat-lbl">TIME LEFT</div></div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:10px" onclick="startSolo()">Play Again</button>
+        <button class="btn btn-ghost" onclick="navTo('board')">View Leaderboard</button>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item" onclick="navTo('home')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item active" onclick="navTo('solo')"><span class="nav-icon">🧠</span>Solo</button>
+    <button class="nav-item" onclick="navTo('duel')"><span class="nav-icon">⚔️</span>Duel</button>
+    <button class="nav-item" onclick="navTo('board')"><span class="nav-icon">🏆</span>Ranks</button>
+    <button class="nav-item" onclick="navTo('profile')"><span class="nav-icon">👤</span>Me</button>
+  </div>
+</div>
+
+<!-- ====== DUEL ====== -->
+<div class="screen" id="screen-duel">
+  <div class="scroll-area">
+    <div class="page-head">
+      <div class="back-btn" onclick="navTo('home')">←</div>
+      <div><div style="font-weight:800;font-size:16px;color:var(--team-text)">Duel Mode</div><div style="font-size:12px;color:var(--team-text3)">Head-to-head challenge</div></div>
+    </div>
+
+    <!-- LOBBY ENTRY -->
+    <div id="d-lobby">
+      <div class="start-hero" style="padding-top:8px">
+        <span class="start-icon">⚔️</span>
+        <div class="start-title">DUEL A FRIEND</div>
+        <p class="start-desc">Create a lobby and share the code,<br>or enter a friend's code to join!</p>
+      </div>
+      <button class="btn btn-primary" style="margin-bottom:12px" onclick="createLobby()">Create Lobby & Get Code</button>
+      <div style="text-align:center;font-size:13px;color:var(--team-text3);margin:10px 0">— or enter a code to join —</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="join-code" placeholder="6-digit code" maxlength="6" style="text-align:center;letter-spacing:4px;font-size:20px;font-weight:700;font-family:'Bebas Neue'">
+        <button class="btn btn-primary" style="width:auto;padding:13px 18px;flex-shrink:0" onclick="joinLobby()">Join</button>
+      </div>
+    </div>
+
+    <!-- WAITING ROOM -->
+    <div id="d-waiting" style="display:none">
+      <div class="invite-box" onclick="copyCode()">
+        <p style="font-size:11px;font-weight:700;color:var(--team-text3);margin-bottom:4px;letter-spacing:1px">YOUR INVITE CODE (tap to copy)</p>
+        <span class="invite-code" id="d-code">------</span>
+        <p style="font-size:12px;color:var(--team-text3);margin-top:4px">Share this with your opponent</p>
+      </div>
+      <div class="vs-grid">
+        <div class="player-slot">
+          <div class="p-avatar" id="d-p1-av" style="background:var(--team-primary)">P</div>
+          <div class="p-name" id="d-p1-name">You</div>
+          <span class="p-status ready">READY</span>
+        </div>
+        <div class="vs-txt">VS</div>
+        <div class="player-slot" id="d-p2-slot">
+          <div class="p-avatar" style="background:var(--gray-200);color:var(--team-text3)">?</div>
+          <div class="p-name" style="color:var(--team-text3)">Waiting...</div>
+          <div class="spinner" style="width:20px;height:20px;border-width:2px;margin:4px auto 0"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="d-start-btn" disabled onclick="startDuel()" style="margin-bottom:10px">Waiting for opponent...</button>
+      <button class="btn btn-ghost" onclick="simJoin()" style="font-size:13px">🤖 Simulate Opponent Joining (Demo)</button>
+      <p style="text-align:center;font-size:11px;color:var(--team-text3);margin-top:6px">In production, opponent joins using your code</p>
+    </div>
+
+    <!-- DUEL QUIZ -->
+    <div id="d-quiz" style="display:none">
+      <div class="score-compare">
+        <div class="score-box"><div class="score-name" id="dq-p1n">You</div><div class="score-val" id="dq-p1s">0</div></div>
+        <div style="text-align:center"><div class="timer-num" id="d-timer" style="font-size:40px">60</div></div>
+        <div class="score-box"><div class="score-name" id="dq-p2n">Opp</div><div class="score-val" id="dq-p2s">0</div></div>
+      </div>
+      <div class="timer-bar-wrap"><div class="timer-fill" id="d-tbar" style="width:100%"></div></div>
+      <div class="q-label" id="d-qnum" style="text-align:center">Q1 of 10</div>
+      <div class="q-text" id="d-qtxt">Loading...</div>
+      <div class="options" id="d-opts"></div>
+      <div class="feedback" id="d-fb"></div>
+    </div>
+
+    <!-- DUEL RESULT -->
+    <div id="d-result" style="display:none">
+      <div class="result-wrap">
+        <span class="result-emoji" id="d-r-icon">🏆</span>
+        <div class="result-score" id="d-r-title" style="font-size:48px">YOU WIN!</div>
+        <div class="result-lbl" id="d-r-sub">Great performance!</div>
+        <div class="score-compare" style="margin:16px 0">
+          <div class="score-box"><div class="score-name" id="dr-p1n">You</div><div class="score-val" id="dr-p1s">0</div></div>
+          <div style="font-family:'Bebas Neue';font-size:20px;color:var(--gray-300)">VS</div>
+          <div class="score-box"><div class="score-name" id="dr-p2n">Opp</div><div class="score-val" id="dr-p2s">0</div></div>
+        </div>
+        <div class="pts-pill" id="d-r-pts">⭐ +0 Points</div>
+        <div style="height:14px"></div>
+        <button class="btn btn-primary" style="margin-bottom:10px" onclick="resetDuel()">New Duel</button>
+        <button class="btn btn-ghost" onclick="navTo('board')">Leaderboard</button>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item" onclick="navTo('home')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" onclick="navTo('solo')"><span class="nav-icon">🧠</span>Solo</button>
+    <button class="nav-item active" onclick="navTo('duel')"><span class="nav-icon">⚔️</span>Duel</button>
+    <button class="nav-item" onclick="navTo('board')"><span class="nav-icon">🏆</span>Ranks</button>
+    <button class="nav-item" onclick="navTo('profile')"><span class="nav-icon">👤</span>Me</button>
+  </div>
+</div>
+
+<!-- ====== LEADERBOARD ====== -->
+<div class="screen" id="screen-board">
+  <div class="scroll-area">
+    <div class="logo-area" style="padding-top:8px"><span class="logo-text">🏆 Rankings</span></div>
+    <div class="tab-row">
+      <button class="tab active" id="lb-tab-solo" onclick="switchLB('solo')">Solo Players</button>
+      <button class="tab" id="lb-tab-team" onclick="switchLB('team')">Team Battle</button>
+    </div>
+    <div id="lb-solo-pane">
+      <p class="section-sub">Players ranked by total quiz points</p>
+      <div id="lb-solo-list"></div>
+    </div>
+    <div id="lb-team-pane" style="display:none">
+      <p class="section-sub">Combined points from all team members</p>
+      <div id="team-battle-block"></div>
+      <div style="margin-top:16px">
+        <p class="sh sh-arg">🇦🇷 Argentina Top Players</p>
+        <div id="lb-arg-list"></div>
+      </div>
+      <div style="margin-top:12px">
+        <p class="sh sh-bra">🇧🇷 Brazil Top Players</p>
+        <div id="lb-bra-list"></div>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item" onclick="navTo('home')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" onclick="navTo('solo')"><span class="nav-icon">🧠</span>Solo</button>
+    <button class="nav-item" onclick="navTo('duel')"><span class="nav-icon">⚔️</span>Duel</button>
+    <button class="nav-item active" onclick="navTo('board')"><span class="nav-icon">🏆</span>Ranks</button>
+    <button class="nav-item" onclick="navTo('profile')"><span class="nav-icon">👤</span>Me</button>
+  </div>
+</div>
+
+<!-- ====== PROFILE ====== -->
+<div class="screen" id="screen-profile">
+  <div class="scroll-area">
+    <div class="logo-area" style="padding-top:8px"><span class="logo-text">👤 Profile</span></div>
+    <div class="card" style="text-align:center;margin-bottom:14px">
+      <div class="prof-avatar" id="pf-av">P</div>
+      <p style="font-size:18px;font-weight:800;color:var(--team-text)" id="pf-name">Player</p>
+      <p style="font-size:13px;color:var(--team-text3);margin-top:2px" id="pf-email">email</p>
+      <p style="font-size:13px;color:var(--team-text3)" id="pf-phone">phone</p>
+      <div style="margin-top:8px"><span class="badge badge-arg" id="pf-team-badge">ARG</span></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="pf-pts">0</div><div class="stat-lbl">TOTAL PTS</div></div>
+      <div class="stat-box"><div class="stat-val" id="pf-rank">—</div><div class="stat-lbl">RANK</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-val" id="pf-correct">0</div><div class="stat-lbl">CORRECT</div></div>
+      <div class="stat-box"><div class="stat-val" id="pf-played">0</div><div class="stat-lbl">QUIZZES</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <p style="font-size:13px;font-weight:700;color:var(--team-text2);margin-bottom:10px">Switch Team</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-ghost" onclick="changeTeam('ARG')" style="font-size:13px;padding:10px">🇦🇷 Argentina</button>
+        <button class="btn btn-ghost" onclick="changeTeam('BRA')" style="font-size:13px;padding:10px">🇧🇷 Brazil</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost" onclick="doLogout()" style="border-color:#E2136E;color:#E2136E;margin-bottom:20px">Sign Out</button>
+  </div>
+  <div class="nav-bar">
+    <button class="nav-item" onclick="navTo('home')"><span class="nav-icon">🏠</span>Home</button>
+    <button class="nav-item" onclick="navTo('solo')"><span class="nav-icon">🧠</span>Solo</button>
+    <button class="nav-item" onclick="navTo('duel')"><span class="nav-icon">⚔️</span>Duel</button>
+    <button class="nav-item" onclick="navTo('board')"><span class="nav-icon">🏆</span>Ranks</button>
+    <button class="nav-item active" onclick="navTo('profile')"><span class="nav-icon">👤</span>Me</button>
+  </div>
+</div>
+</div><!-- end #app -->
+
+<script>
+// ===== QUESTION BANK =====
+const QS=[
+  {q:"Which country won the 2022 FIFA World Cup?",a:"Argentina",o:["Brazil","France","Argentina","Croatia"]},
+  {q:"How many times has Brazil won the World Cup?",a:"5",o:["4","5","6","3"]},
+  {q:"Which player is known as 'La Pulga' (The Flea)?",a:"Lionel Messi",o:["Neymar","Ronaldo","Lionel Messi","Mbappé"]},
+  {q:"In which country was the first FIFA World Cup held?",a:"Uruguay",o:["Brazil","France","Uruguay","Italy"]},
+  {q:"How many players are on a football team on the field?",a:"11",o:["10","11","12","9"]},
+  {q:"Which Brazilian legend is considered one of the greatest of all time?",a:"Pelé",o:["Ronaldo","Pelé","Romário","Rivaldo"]},
+  {q:"What colour are Argentina's home shirts?",a:"Light blue and white",o:["Yellow","Red","Light blue and white","Green"]},
+  {q:"What colour are Brazil's home shirts?",a:"Yellow",o:["Green","Yellow","Blue","White"]},
+  {q:"How many World Cups has Argentina won?",a:"3",o:["2","3","4","1"]},
+  {q:"Which year did Argentina first win the World Cup?",a:"1978",o:["1974","1978","1982","1986"]},
+  {q:"Which stadium hosted the 2022 World Cup Final?",a:"Lusail Stadium",o:["Al Bayt","Lusail Stadium","Al Thumama","Education City"]},
+  {q:"Who won the Golden Ball at the 2022 World Cup?",a:"Lionel Messi",o:["Mbappé","Modric","Lionel Messi","Benzema"]},
+  {q:"What is the name of Argentina's national football team?",a:"La Albiceleste",o:["La Roja","La Albiceleste","Les Bleus","A Seleção"]},
+  {q:"What is Brazil's national team nickname?",a:"A Seleção",o:["Os Verdes","A Seleção","Canarinho","Verde-Amarela"]},
+  {q:"Which player has won the most Ballon d'Or awards?",a:"Lionel Messi",o:["Ronaldo","Lionel Messi","Ronaldinho","Platini"]},
+  {q:"In which city is the Maracanã stadium located?",a:"Rio de Janeiro",o:["São Paulo","Rio de Janeiro","Brasília","Salvador"]},
+  {q:"How long is a standard football match?",a:"90 minutes",o:["80 minutes","90 minutes","100 minutes","120 minutes"]},
+  {q:"Who scored the 'Goal of the Century' in 1986?",a:"Maradona",o:["Pelé","Messi","Maradona","Ronaldo"]},
+  {q:"Which player wore the number 10 for Argentina at the 2022 World Cup?",a:"Lionel Messi",o:["Di María","Lionel Messi","Dybala","Lautaro"]},
+  {q:"In which year was the first FIFA World Cup held?",a:"1930",o:["1926","1930","1934","1938"]},
+  {q:"Who is Brazil's all-time top scorer?",a:"Neymar",o:["Pelé","Ronaldo","Neymar","Romário"]},
+  {q:"Which team did Lionel Messi play for most of his career?",a:"Barcelona",o:["Real Madrid","Barcelona","Manchester City","PSG"]},
+  {q:"How many teams compete in the FIFA World Cup final tournament?",a:"32",o:["24","28","32","36"]},
+  {q:"Which country hosted the 2018 FIFA World Cup?",a:"Russia",o:["France","Germany","Russia","Spain"]},
+  {q:"Who won the 2018 FIFA World Cup?",a:"France",o:["Croatia","Brazil","France","Belgium"]},
+  {q:"Which player is nicknamed 'O Rei' (The King)?",a:"Pelé",o:["Ronaldo","Pelé","Neymar","Ronaldinho"]},
+  {q:"How many minutes is extra time in a knockout game?",a:"30 minutes",o:["20 minutes","30 minutes","40 minutes","25 minutes"]},
+  {q:"Which country won the 2014 FIFA World Cup?",a:"Germany",o:["Argentina","Brazil","Germany","France"]},
+  {q:"In the 2014 World Cup semi-final, Germany beat Brazil by what score?",a:"7-1",o:["5-0","6-1","7-1","8-2"]},
+  {q:"What is the name of the World Cup trophy?",a:"FIFA World Cup Trophy",o:["Golden Boot","Jules Rimet Trophy","FIFA World Cup Trophy","Golden Globe"]},
+  {q:"Which country invented modern football (soccer)?",a:"England",o:["Brazil","England","Spain","France"]},
+  {q:"Which city in Argentina is Lionel Messi from?",a:"Rosario",o:["Buenos Aires","Rosario","Córdoba","Mendoza"]},
+  {q:"Who has scored the most goals in World Cup history overall?",a:"Miroslav Klose",o:["Ronaldo (Brazil)","Miroslav Klose","Gerd Müller","Messi"]},
+  {q:"Which Argentine manager won the 2022 World Cup?",a:"Lionel Scaloni",o:["Sabella","Bilardo","Lionel Scaloni","Menotti"]},
+  {q:"Which Brazilian player won the Ballon d'Or in 2005?",a:"Ronaldinho",o:["Ronaldo","Adriano","Kaká","Ronaldinho"]},
+  {q:"What colour card means a player is sent off?",a:"Red",o:["Yellow","Orange","Red","Black"]},
+  {q:"How many minutes is extra time (both halves combined)?",a:"30 minutes",o:["20 minutes","30 minutes","40 minutes","25 minutes"]},
+  {q:"Which South American country has won the Copa América the most times?",a:"Argentina",o:["Brazil","Uruguay","Argentina","Chile"]},
+  {q:"What is the award for the top scorer at the World Cup?",a:"Golden Boot",o:["Golden Glove","Golden Boot","Golden Ball","Golden Star"]},
+  {q:"Which club did Pelé play for most of his career?",a:"Santos",o:["Flamengo","Corinthians","Santos","Vasco da Gama"]},
+  {q:"What does a yellow card mean in football?",a:"Warning / caution",o:["Sent off","Warning / caution","5-minute ban","Free kick"]},
+  {q:"Which year did Messi finally win the World Cup?",a:"2022",o:["2014","2018","2022","2010"]},
+  {q:"How many goals did Messi score at the 2022 World Cup?",a:"7",o:["5","6","7","8"]},
+  {q:"Who is known as 'The Phenomenon' in Brazilian football?",a:"Ronaldo R9",o:["Pelé","Neymar","Ronaldo R9","Romário"]},
+  {q:"What is the penalty spot distance from the goal line?",a:"12 yards",o:["10 yards","11 yards","12 yards","13 yards"]},
+  {q:"Which club is Messi currently playing for (as of 2024)?",a:"Inter Miami",o:["PSG","Barcelona","Inter Miami","Al-Hilal"]},
+  {q:"Which Brazilian plays for Real Madrid and is a key winger?",a:"Vinicius Jr.",o:["Neymar","Rodrygo","Vinicius Jr.","Richarlison"]},
+  {q:"The World Cup is held every how many years?",a:"4 years",o:["2 years","3 years","4 years","5 years"]},
+  {q:"How many World Cups has Lionel Messi played in total?",a:"5",o:["3","4","5","6"]},
+  {q:"Which goalkeeper won the Golden Glove at 2022 World Cup?",a:"Emiliano Martínez",o:["Alisson","Lloris","Courtois","Emiliano Martínez"]},
+  {q:"What number shirt did Pelé famously wear?",a:"10",o:["9","10","11","7"]},
+  {q:"Which country did Argentina beat in the 2022 World Cup semi-final?",a:"Croatia",o:["Netherlands","France","Croatia","Morocco"]},
+  {q:"What is a 'brace' in football?",a:"2 goals by one player in a match",o:["3 goals","2 goals by one player in a match","An assist","A tackle from behind"]},
+  {q:"What is a hat-trick in football?",a:"3 goals by one player in one match",o:["2 goals","3 goals by one player in one match","Goal from outside box","Header goal"]},
+  {q:"Which team has the most UEFA Champions League titles?",a:"Real Madrid",o:["Barcelona","Bayern Munich","Real Madrid","AC Milan"]},
+  {q:"What is a 'clean sheet' in football?",a:"A goalkeeper conceding no goals",o:["A yellow card","Winning 1-0","A goalkeeper conceding no goals","A foul-free game"]},
+  {q:"Where was the 2022 FIFA World Cup held?",a:"Qatar",o:["UAE","Saudi Arabia","Qatar","Bahrain"]},
+  {q:"Kylian Mbappé plays for which country?",a:"France",o:["Belgium","France","Senegal","Morocco"]},
+  {q:"Which World Cup saw the famous 'Hand of God' goal?",a:"1986 Mexico",o:["1982 Spain","1986 Mexico","1990 Italy","1994 USA"]},
+  {q:"How wide is a standard football goal in yards?",a:"8 yards",o:["6 yards","7 yards","8 yards","9 yards"]},
+  {q:"What does VAR stand for in football?",a:"Video Assistant Referee",o:["Virtual Athletic Review","Video Assistant Referee","Visual Analysis Review","Variable Angle Replay"]},
+  {q:"How many players take a penalty shoot-out per side before sudden death?",a:"5",o:["3","4","5","6"]},
+  {q:"The Copa Libertadores is the top club competition in which region?",a:"South America",o:["North America","Europe","South America","Africa"]},
+  {q:"Which country is Maradona from?",a:"Argentina",o:["Brazil","Uruguay","Argentina","Italy"]},
+  {q:"The 2026 FIFA World Cup will be hosted by?",a:"USA, Canada & Mexico",o:["Australia","USA, Canada & Mexico","Saudi Arabia","Spain & Portugal"]},
+  {q:"Which two clubs play 'El Clásico'?",a:"Real Madrid vs Barcelona",o:["Arsenal vs Chelsea","Real Madrid vs Barcelona","Bayern vs Dortmund","PSG vs Marseille"]},
+  {q:"Brazil won their first World Cup in which year?",a:"1958",o:["1950","1954","1958","1962"]},
+  {q:"Which nation has qualified for every single World Cup?",a:"Brazil",o:["Argentina","Germany","Italy","Brazil"]},
+  {q:"The ARG vs BRA international rivalry is formally known as?",a:"Superclásico de las Américas",o:["Copa América Final","Superclásico de las Américas","Rivaldo Cup","Copa del Sur"]},
+  {q:"Which team lost the 2022 World Cup Final to Argentina?",a:"France",o:["Croatia","Morocco","France","England"]},
+  {q:"Which South American confederation governs football?",a:"CONMEBOL",o:["CAF","CONMEBOL","UEFA","AFC"]},
+  {q:"Who is known as the 'White Pelé' in Argentine football?",a:"Alfredo Di Stéfano",o:["Kempes","Alfredo Di Stéfano","Maradona","Sivori"]},
+  {q:"What is the name of Brazil's iconic Rio stadium used in 1950 and 2014?",a:"Maracanã",o:["Morumbi","Arena Corinthians","Maracanã","Fonte Nova"]},
+  {q:"Which player scored the most goals in a single World Cup tournament?",a:"Just Fontaine (13 goals, 1958)",o:["Gerd Müller","Ronaldo R9","Just Fontaine (13 goals, 1958)","Pelé"]},
+  {q:"Vinicius Jr. plays as which type of forward?",a:"Left winger",o:["Centre forward","Right winger","Left winger","Attacking midfielder"]},
+  {q:"Ederson and Alisson are famous Brazilian players in which position?",a:"Goalkeeper",o:["Striker","Midfielder","Defender","Goalkeeper"]},
+  {q:"What is a 'bicycle kick' in football?",a:"A shot where a player kicks the ball backwards overhead",o:["A kick with the heel","A shot where a player kicks the ball backwards overhead","A long-range free kick","A penalty technique"]},
+  {q:"Brazil's football federation is known as?",a:"CBF",o:["FBF","BFA","CBF","BFF"]},
+  {q:"Argentina's second World Cup win was in which year?",a:"1986",o:["1982","1986","1990","1994"]},
+  {q:"Who managed Brazil during their 2002 World Cup winning campaign?",a:"Luiz Felipe Scolari",o:["Zagallo","Parreira","Luiz Felipe Scolari","Tite"]},
+  {q:"Ronaldo 'R9' scored how many goals at the 2002 World Cup?",a:"8",o:["6","7","8","9"]},
+  {q:"Which country's league is called 'La Liga'?",a:"Spain",o:["Italy","France","Spain","Portugal"]},
+  {q:"What year did Messi win his first Ballon d'Or?",a:"2009",o:["2007","2008","2009","2010"]},
+  {q:"In which city is the Camp Nou stadium located?",a:"Barcelona",o:["Madrid","Seville","Barcelona","Bilbao"]},
+  {q:"The Maracanazo refers to which historic upset?",a:"Uruguay beating Brazil in 1950 World Cup",o:["Argentina beating Brazil","Uruguay beating Brazil in 1950 World Cup","Germany beating Brazil 7-1","England beating Argentina"]},
+  {q:"Argentina's famous Buenos Aires derby is between River Plate and?",a:"Boca Juniors",o:["San Lorenzo","Boca Juniors","Independiente","Racing"]},
+  {q:"What position does a libero/sweeper play in football?",a:"Defensive",o:["Attack","Midfield","Defensive","Goalkeeping"]},
+  {q:"Which club is famous for the song 'You'll Never Walk Alone'?",a:"Liverpool",o:["Manchester United","Liverpool","Celtic","Dortmund"]},
+  {q:"What is 'Total Football' associated with?",a:"Netherlands (Johan Cruyff era)",o:["Brazil 1970","Netherlands (Johan Cruyff era)","Germany 1974","Italy (Catenaccio)"]},
+  {q:"Pelé scored how many international goals for Brazil?",a:"77",o:["67","77","87","97"]},
+  {q:"The Premier League is the top football league of which country?",a:"England",o:["Spain","France","England","Germany"]},
+  {q:"Which year did Brazil win their 5th and most recent World Cup?",a:"2002",o:["1994","1998","2002","2006"]},
+  {q:"How many Ballon d'Or awards has Messi won as of 2023?",a:"8",o:["6","7","8","9"]},
+  {q:"Brazil's home stadium El Maracanã is in which city?",a:"Rio de Janeiro",o:["São Paulo","Rio de Janeiro","Salvador","Recife"]},
+  {q:"Which player scored in both the 2014 and 2018 World Cup finals?",a:"Mario Götze (2014); Mbappé (2018)",o:["Messi","Mario Götze (2014); Mbappé (2018)","Ronaldo","Griezmann"]},
+  {q:"Argentina's iconic 'La Bombonera' stadium belongs to which club?",a:"Boca Juniors",o:["River Plate","Boca Juniors","Independiente","San Lorenzo"]},
+  {q:"Which country does Lautaro Martínez represent?",a:"Argentina",o:["Italy","Uruguay","Argentina","Brazil"]},
+  {q:"Brazil won the Copa América in which recent year?",a:"2019",o:["2015","2016","2019","2021"]},
+  {q:"What do the five stars on Brazil's kit represent?",a:"5 World Cup titles",o:["5 Copa América titles","5 confederations","5 World Cup titles","5 Olympic golds"]},
+  {q:"Which Argentine forward plays for Atletico Madrid?",a:"Julián Álvarez",o:["Dybala","Lautaro","Julián Álvarez","Icardi"]},
+  {q:"Who holds the record for most international goals scored by a man?",a:"Cristiano Ronaldo",o:["Messi","Pelé","Cristiano Ronaldo","Ali Daei"]},
+  {q:"Brazil's famous yellow jersey was debuted in which World Cup?",a:"1954",o:["1950","1954","1958","1962"]},
+  {q:"Which is NOT a real position in football?",a:"Libero striker",o:["Right back","Centre half","Libero striker","False 9"]},
+  {q:"What does 'El Clasico' literally mean?",a:"The Classic",o:["The Great Match","The Classic","The Derby","The Rivalry"]},
+  {q:"Neymar Jr. represents which country?",a:"Brazil",o:["Argentina","Portugal","Brazil","Spain"]},
+  {q:"In which year did Messi join Inter Miami?",a:"2023",o:["2021","2022","2023","2024"]},
+  {q:"Which trophy is awarded to the best goalkeeper at the World Cup?",a:"Golden Glove",o:["Golden Boot","Golden Glove","Golden Ball","Silver Shield"]},
+  {q:"How many substitutes can a team use in a standard 90-minute match (since 2022)?",a:"5",o:["3","4","5","6"]},
+  {q:"Argentina's third World Cup win came in which year?",a:"2022",o:["2002","2014","2018","2022"]},
+  {q:"Which player wore number 11 for Brazil at many World Cups?",a:"Ronaldinho / Neymar (various years)",o:["Pelé","Ronaldo","Ronaldinho / Neymar (various years)","Romário"]},
+  {q:"The Conmebol Copa América is held how frequently?",a:"Every 4 years (now every 2)",o:["Every year","Every 4 years (now every 2)","Every 3 years","Every 6 years"]},
+  {q:"Which country does Ángel Di María represent?",a:"Argentina",o:["Brazil","Spain","Argentina","France"]},
+  {q:"How many goals did Ronaldo R9 score in total World Cup appearances?",a:"15",o:["12","13","15","17"]},
+  {q:"Which famous coach won the World Cup with France in 1998?",a:"Aimé Jacquet",o:["Didier Deschamps","Platini","Aimé Jacquet","Henri Michel"]},
+  {q:"Brazil's Canarinho (Little Canary) nickname comes from their?",a:"Yellow home kit",o:["National bird","Yellow home kit","Famous player","Football style"]},
+  {q:"The offside rule means an attacker cannot be?",a:"Behind the second-last defender when the ball is played",o:["Anywhere in the opponent's half","Behind the second-last defender when the ball is played","In the penalty area","Near the goalkeeper"]},
+  {q:"Which player was Argentina's top scorer at the 2022 World Cup alongside Messi?",a:"Julián Álvarez (4 goals)",o:["Di María","Lautaro","Julián Álvarez (4 goals)","Mac Allister"]},
+  {q:"What is the maximum number of players in a match-day squad (bench + starters)?",a:"23 (since 2023 rules: 26)",o:["18","20","23 (since 2023 rules: 26)","25"]},
+  {q:"Which country did Brazil beat in the 2002 World Cup Final?",a:"Germany",o:["Argentina","France","Germany","England"]},
+  {q:"Diego Maradona primarily played at club level for which Italian club?",a:"Napoli",o:["Juventus","AC Milan","Napoli","Inter Milan"]},
+  {q:"Which award did Messi win at the 2014 World Cup despite Argentina losing the final?",a:"Golden Ball (best player)",o:["Golden Boot","Golden Glove","Golden Ball (best player)","Silver Ball"]},
+];
+
+// ===== INDEXEDDB DATABASE LAYER =====
+const DB_NAME = 'WorldCupQuizMaster';
+const DB_VERSION = 1;
+let db = null;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      // Users store - keyed by email
+      if (!database.objectStoreNames.contains('users')) {
+        const usersStore = database.createObjectStore('users', { keyPath: 'email' });
+        usersStore.createIndex('email', 'email', { unique: true });
+      }
+      // Sessions store - for persisting logged-in user
+      if (!database.objectStoreNames.contains('session')) {
+        database.createObjectStore('session', { keyPath: 'id' });
+      }
+    };
+
+    req.onsuccess = (e) => {
+      db = e.target.result;
+      console.log('World Cup Quiz Master DB ready (IndexedDB)');
+      resolve(db);
+    };
+
+    req.onerror = (e) => {
+      console.warn('IndexedDB failed, falling back to localStorage', e);
+      reject(e);
+    };
+  });
+}
+
+// --- CRUD helpers ---
+function dbPut(storeName, record) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).put(record);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGet(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGetAll(storeName) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbDelete(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// --- App-level DB operations ---
+async function saveUser(user) {
+  await dbPut('users', user);
+}
+
+async function getUser(email) {
+  return await dbGet('users', email);
+}
+
+async function getAllUsers() {
+  return await dbGetAll('users');
+}
+
+async function saveSession(user) {
+  await dbPut('session', { id: 'current', email: user.email });
+}
+
+async function clearSession() {
+  await dbDelete('session', 'current');
+}
+
+async function getSession() {
+  return await dbGet('session', 'current');
+}
+
+// ===== APP STATE =====
+let S = { cu: null, selTeam: null };
+let sTimer=null, dTimer=null;
+let soloQs=[], soloIdx=0, soloCorr=0, soloTimeLeft=60, soloAnswered=false;
+let duelQs=[], duelIdx=0, dp1=0, dp2=0, dTimeLeft=60, dAnswered=false, dOppName='';
+let duelCode='', duelOppJoined=false;
+
+// ===== TOAST =====
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ===== THEME =====
+function applyTheme(team){
+  const app=document.getElementById('app');
+  app.classList.remove('arg-theme','bra-theme');
+  if(team==='ARG') app.classList.add('arg-theme');
+  else if(team==='BRA') app.classList.add('bra-theme');
+}
+
+// ===== SCREEN ROUTING =====
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function setNavActive(tab){
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.toggle('active',
+      n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+tab+"'"));
+  });
+}
+
+function navTo(tab){
+  const map={home:'home',solo:'solo',duel:'duel',board:'board',profile:'profile'};
+  showScreen(map[tab]);
+  setNavActive(tab);
+  if(tab==='board') renderLBs();
+  if(tab==='profile') renderProfile();
+  if(tab==='home') renderHome();
+  if(tab==='solo'){ clearInterval(sTimer); show('solo-start'); hide('solo-quiz'); hide('solo-result'); }
+  if(tab==='duel') resetDuelFull();
+}
+
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+// ===== AUTH =====
+function switchAuthTab(tab){
+  document.querySelectorAll('#auth-tabs .tab').forEach(t=>t.classList.remove('active'));
+  if(tab==='login'){
+    show('login-form'); hide('register-form');
+    document.querySelectorAll('#auth-tabs .tab')[0].classList.add('active');
+  } else {
+    hide('login-form'); show('register-form');
+    document.querySelectorAll('#auth-tabs .tab')[1].classList.add('active');
+  }
+}
+
+async function doLogin(){
+  const email = document.getElementById('li-email').value.trim().toLowerCase();
+  const phone = document.getElementById('li-phone').value.trim();
+  const pass  = document.getElementById('li-pass').value;
+
+  // Clear all previous errors
+  ['li-email-err','li-phone-err','li-err'].forEach(id=>{
+    document.getElementById(id).textContent='';
+    document.getElementById(id).classList.remove('show');
+  });
+
+  let valid = true;
+  const fieldErr = (id, msg) => {
+    document.getElementById(id).textContent = msg;
+    document.getElementById(id).classList.add('show');
+    valid = false;
+  };
+
+  // Field-level validation
+  if(!email)                        fieldErr('li-email-err','Email is required');
+  else if(!email.includes('@') || !email.includes('.'))
+                                    fieldErr('li-email-err','Enter a valid email address');
+  if(!phone)                        fieldErr('li-phone-err','Phone number is required');
+  if(!pass)                         fieldErr('li-err','Password is required');
+  if(!valid) return;
+
+  // Lookup user by email
+  const user = await getUser(email);
+
+  if(!user){
+    fieldErr('li-email-err','No account found with this email. Please register first.');
+    return;
+  }
+
+  // Verify phone matches registered phone (normalise whitespace/dashes)
+  const normalise = s => s.replace(/[\s\-\(\)]/g,'');
+  if(normalise(user.phone) !== normalise(phone)){
+    fieldErr('li-phone-err','Phone number does not match our records.');
+    return;
+  }
+
+  // Verify password (exact match only — no backdoors)
+  if(user.password !== pass){
+    document.getElementById('li-err').textContent = 'Incorrect password.';
+    document.getElementById('li-err').classList.add('show');
+    return;
+  }
+
+  S.cu = user;
+  await saveSession(user);
+
+  if(!user.team){ showScreen('team'); }
+  else{ applyTheme(user.team); renderHome(); showScreen('home'); }
+}
+
+async function doRegister(){
+  const name  = document.getElementById('rg-name').value.trim();
+  const email = document.getElementById('rg-email').value.trim().toLowerCase();
+  const phone = document.getElementById('rg-phone').value.trim();
+  const pass  = document.getElementById('rg-pass').value;
+  const pass2 = document.getElementById('rg-pass2').value;
+
+  // Clear all errors first
+  ['rg-name-err','rg-email-err','rg-phone-err','rg-pass-err','rg-pass2-err'].forEach(id=>{
+    document.getElementById(id).textContent='';
+    document.getElementById(id).classList.remove('show');
+  });
+
+  let ok = true;
+  const ck = (id, cond, msg) => {
+    if(!cond){
+      document.getElementById(id).textContent = msg;
+      document.getElementById(id).classList.add('show');
+      ok = false;
+    }
+  };
+
+  // Name: letters and spaces only, min 2 chars
+  ck('rg-name-err',  name.length >= 2,                        'Full name must be at least 2 characters');
+  ck('rg-name-err',  /^[a-zA-Z\s\u0980-\u09FF]+$/.test(name), 'Name should only contain letters');
+
+  // Email: basic RFC format check
+  const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  ck('rg-email-err', email !== '',              'Email is required');
+  ck('rg-email-err', emailRx.test(email),       'Enter a valid email (e.g. name@example.com)');
+
+  // Phone: must start with + or digit, 7–15 digits
+  const phoneDigits = phone.replace(/[\s\-\(\)]/g,'');
+  ck('rg-phone-err', phone !== '',              'Phone number is required');
+  ck('rg-phone-err', /^\+?[0-9]{7,15}$/.test(phoneDigits), 'Enter a valid phone number (7–15 digits)');
+
+  // Password: min 6 chars, at least 1 letter and 1 number
+  ck('rg-pass-err',  pass.length >= 6,          'Minimum 6 characters');
+  ck('rg-pass-err',  /[a-zA-Z]/.test(pass),     'Password must contain at least one letter');
+  ck('rg-pass-err',  /[0-9]/.test(pass),        'Password must contain at least one number');
+
+  // Confirm password
+  ck('rg-pass2-err', pass2 !== '',              'Please confirm your password');
+  ck('rg-pass2-err', pass === pass2,            'Passwords do not match');
+
+  if(!ok) return;
+
+  // Check for duplicate email
+  const existing = await getUser(email);
+  if(existing){
+    document.getElementById('rg-email-err').textContent = 'This email is already registered. Please sign in.';
+    document.getElementById('rg-email-err').classList.add('show');
+    return;
+  }
+
+  const user = { name, email, phone, password:pass,
+                  team:null, points:0, correct:0, played:0, seenQs:[] };
+  await saveUser(user);
+  S.cu = user;
+  await saveSession(user);
+
+  toast('Account created! Pick your team. ✅');
+  showScreen('team');
+}
+
+// ===== TEAM SELECT =====
+function selectTeam(t){
+  S.selTeam = t;
+  document.getElementById('tc-arg').classList.toggle('selected', t==='ARG');
+  document.getElementById('tc-bra').classList.toggle('selected', t==='BRA');
+  document.getElementById('confirm-team-btn').disabled = false;
+  applyTheme(t);
+}
+
+async function confirmTeam(){
+  if(!S.selTeam) return;
+  S.cu.team = S.selTeam;
+  await saveUser(S.cu);
+  renderHome();
+  showScreen('home');
+}
+
+async function changeTeam(t){
+  S.cu.team = t;
+  await saveUser(S.cu);
+  applyTheme(t);
+  renderProfile();
+  toast('Team changed to ' + t + '!');
+}
+
+// ===== HOME =====
+function renderHome(){
+  if(!S.cu) return;
+  const u = S.cu;
+  document.getElementById('h-uname').textContent = u.name.split(' ')[0];
+  document.getElementById('h-pts').textContent   = (u.points||0) + ' PTS';
+  document.getElementById('h-correct').textContent = u.correct||0;
+  document.getElementById('h-played').textContent  = u.played||0;
+  const isArg = u.team==='ARG';
+  const badge = document.getElementById('h-team-badge');
+  badge.textContent = isArg ? '🇦🇷 ARG' : '🇧🇷 BRA';
+  badge.className   = 'badge ' + (isArg ? 'badge-arg' : 'badge-bra');
+  const banner = document.getElementById('h-banner');
+  banner.className  = 'team-banner ' + (isArg ? 'arg-banner' : 'bra-banner');
+  document.getElementById('h-flag').textContent  = isArg ? '🇦🇷' : '🇧🇷';
+  document.getElementById('h-bname').textContent = isArg ? 'ARGENTINA' : 'BRAZIL';
+  document.getElementById('h-bname').style.color = isArg ? '#74ACDF' : '#FFDF00';
+  document.getElementById('solo-pts-hdr').textContent = (u.points||0) + ' PTS';
+}
+
+// ===== PROFILE =====
+async function renderProfile(){
+  if(!S.cu) return;
+  const u = S.cu;
+  const all = await getAllUsers();
+  document.getElementById('pf-name').textContent    = u.name;
+  document.getElementById('pf-email').textContent   = u.email;
+  document.getElementById('pf-phone').textContent   = u.phone;
+  document.getElementById('pf-pts').textContent     = u.points||0;
+  document.getElementById('pf-played').textContent  = u.played||0;
+  document.getElementById('pf-correct').textContent = u.correct||0;
+  document.getElementById('pf-av').textContent      = u.name.charAt(0).toUpperCase();
+  const isArg = u.team==='ARG';
+  const badge = document.getElementById('pf-team-badge');
+  badge.textContent = isArg ? '🇦🇷 Argentina' : '🇧🇷 Brazil';
+  badge.className   = 'badge ' + (isArg ? 'badge-arg' : 'badge-bra');
+  const sorted = all.sort((a,b)=>(b.points||0)-(a.points||0));
+  const rank   = sorted.findIndex(p=>p.email===u.email) + 1;
+  document.getElementById('pf-rank').textContent = rank > 0 ? '#'+rank : '—';
+}
+
+async function doLogout(){
+  clearInterval(sTimer); clearInterval(dTimer);
+  await clearSession();
+  S.cu = null; S.selTeam = null;
+  document.getElementById('app').classList.remove('arg-theme','bra-theme');
+  showScreen('auth');
+}
+
+// ===== QUIZ HELPERS =====
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+async function getUnseen(){
+  if(!S.cu) return QS;
+  const seen = new Set(S.cu.seenQs||[]);
+  let unseen = QS.filter((_,i)=>!seen.has(i));
+  if(unseen.length < 10){
+    S.cu.seenQs = [];
+    await saveUser(S.cu);
+    unseen = QS;
+    toast('Question pool reset! All ' + QS.length + ' questions fresh again. 🔄');
+  }
+  return unseen;
+}
+
+async function pick10(){
+  const pool = await getUnseen();
+  return shuffle(pool).slice(0,10);
+}
+
+function buildDots(id, n){
+  const c = document.getElementById(id); c.innerHTML='';
+  for(let i=0;i<n;i++){
+    const d = document.createElement('div');
+    d.className='q-dot'; d.id=id+'_'+i; c.appendChild(d);
+  }
+}
+
+function updateDot(id, idx, state){
+  const d = document.getElementById(id+'_'+idx);
+  if(!d) return;
+  d.classList.remove('done','active');
+  if(state==='done')  d.classList.add('done');
+  if(state==='active') d.classList.add('active');
+}
+
+// ===== SOLO QUIZ =====
+async function startSolo(){
+  soloQs = await pick10();
+  soloIdx=0; soloCorr=0; soloTimeLeft=60; soloAnswered=false;
+  hide('solo-start'); hide('solo-result'); show('solo-quiz');
+  buildDots('s-dots',10);
+  showSoloQ();
+  clearInterval(sTimer);
+  sTimer = setInterval(()=>{
+    soloTimeLeft--;
+    document.getElementById('s-timer').textContent = soloTimeLeft;
+    document.getElementById('s-tbar').style.width  = (soloTimeLeft/60*100)+'%';
+    document.getElementById('s-timer').classList.toggle('urgent', soloTimeLeft<=10);
+    if(soloTimeLeft<=0){ clearInterval(sTimer); endSolo(); }
+  },1000);
+}
+
+function showSoloQ(){
+  if(soloIdx >= soloQs.length){ endSolo(); return; }
+  soloAnswered = false;
+  for(let i=0;i<soloIdx;i++) updateDot('s-dots',i,'done');
+  updateDot('s-dots',soloIdx,'active');
+  const q = soloQs[soloIdx];
+  document.getElementById('s-qnum').textContent  = 'Question '+(soloIdx+1)+' of 10';
+  document.getElementById('s-qtxt').textContent  = q.q;
+  document.getElementById('s-fb').textContent    = '';
+  document.getElementById('s-fb').style.color    = '';
+  const opts = document.getElementById('s-opts');
+  opts.innerHTML = '';
+  shuffle(q.o).forEach(opt=>{
+    const b = document.createElement('button');
+    b.className='opt-btn'; b.textContent=opt;
+    b.onclick = ()=>answerSolo(opt,q.a,b);
+    opts.appendChild(b);
+  });
+}
+
+async function answerSolo(chosen, correct, btn){
+  if(soloAnswered) return;
+  soloAnswered = true;
+  document.querySelectorAll('#s-opts .opt-btn').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===correct) b.classList.add('show-correct');
+  });
+  if(chosen===correct){
+    btn.classList.remove('show-correct'); btn.classList.add('correct');
+    soloCorr++;
+    document.getElementById('s-fb').textContent = '✓ Correct! +2 pts';
+    document.getElementById('s-fb').style.color = '#4ADE80';
+  } else {
+    btn.classList.add('wrong');
+    document.getElementById('s-fb').textContent = '✗ Wrong! Correct: '+correct;
+    document.getElementById('s-fb').style.color = '#F87171';
+  }
+  // Mark question as seen
+  const qi = QS.indexOf(soloQs[soloIdx]);
+  if(qi>=0 && S.cu){
+    if(!S.cu.seenQs) S.cu.seenQs=[];
+    if(!S.cu.seenQs.includes(qi)) S.cu.seenQs.push(qi);
+  }
+  soloIdx++;
+  setTimeout(()=>{ if(soloIdx<10 && soloTimeLeft>0) showSoloQ(); else endSolo(); }, 1100);
+}
+
+async function endSolo(){
+  clearInterval(sTimer);
+  const pts = soloCorr * 2;
+  if(S.cu){
+    S.cu.points  = (S.cu.points||0)  + pts;
+    S.cu.correct = (S.cu.correct||0) + soloCorr;
+    S.cu.played  = (S.cu.played||0)  + 1;
+    await saveUser(S.cu);
+  }
+  hide('solo-quiz'); show('solo-result');
+  document.getElementById('s-rscore').textContent  = soloCorr+'/10';
+  document.getElementById('s-rpts').textContent    = '⭐ +'+pts+' Points Earned';
+  document.getElementById('s-rcorrect').textContent = soloCorr;
+  document.getElementById('s-rtime').textContent   = soloTimeLeft+'s';
+  const emojis=['😬','😐','🙂','😊','🎉','🏆'];
+  document.getElementById('s-emoji').textContent   = emojis[Math.min(Math.floor(soloCorr/2),5)];
+  renderHome();
+}
+
+// ===== DUEL =====
+function resetDuelFull(){
+  clearInterval(dTimer);
+  show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result');
+  duelOppJoined=false; duelCode='';
+}
+function resetDuel(){ resetDuelFull(); }
+
+function createLobby(){
+  duelCode = Math.floor(100000+Math.random()*900000).toString();
+  document.getElementById('d-code').textContent = duelCode;
+  hide('d-lobby'); show('d-waiting');
+  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'P';
+  document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
+  duelOppJoined = false;
+  document.getElementById('d-start-btn').disabled    = true;
+  document.getElementById('d-start-btn').textContent = 'Waiting for opponent...';
+}
+
+function joinLobby(){
+  const code = document.getElementById('join-code').value.trim();
+  if(code.length!==6||isNaN(code)){ toast('Enter a valid 6-digit code'); return; }
+  duelCode = code;
+  document.getElementById('d-code').textContent   = code;
+  hide('d-lobby'); show('d-waiting');
+  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'P';
+  document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
+  setTimeout(simJoin, 800);
+}
+
+function copyCode(){
+  const code = document.getElementById('d-code').textContent;
+  navigator.clipboard.writeText('Join my World Cup Quiz Master duel! Code: '+code)
+    .then(()=>toast('Code copied to clipboard! 📋'))
+    .catch(()=>toast('Code: '+code));
+}
+
+function simJoin(){
+  const bots=['Rodrigo B.','Nico A.','Samba93','LaPulga10','Carioca⚡','GauchoGol','Pele_Fan','ArgNinja'];
+  dOppName = bots[Math.floor(Math.random()*bots.length)];
+  const cols=['#7c3aed','#059669','#DC2626','#F59E0B','#2563EB','#D97706'];
+  const col  = cols[Math.floor(Math.random()*cols.length)];
+  document.getElementById('d-p2-slot').innerHTML =
+    `<div class="p-avatar" style="background:${col}">${dOppName.charAt(0)}</div>
+     <div class="p-name">${dOppName}</div>
+     <span class="p-status ready">READY</span>`;
+  duelOppJoined = true;
+  document.getElementById('d-start-btn').disabled    = false;
+  document.getElementById('d-start-btn').textContent = '▶ Start Duel Now!';
+  toast(dOppName + ' joined the lobby! ⚔️');
+}
+
+async function startDuel(){
+  if(!duelOppJoined){ toast('Waiting for opponent!'); return; }
+  duelQs = await pick10();
+  duelIdx=0; dp1=0; dp2=0; dTimeLeft=60; dAnswered=false;
+  hide('d-waiting'); show('d-quiz');
+  document.getElementById('dq-p1n').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
+  document.getElementById('dq-p2n').textContent = dOppName || 'Opp';
+  document.getElementById('dq-p1s').textContent = 0;
+  document.getElementById('dq-p2s').textContent = 0;
+  showDuelQ();
+  clearInterval(dTimer);
+  let oppTick = 0;
+  dTimer = setInterval(()=>{
+    dTimeLeft--;
+    document.getElementById('d-timer').textContent = dTimeLeft;
+    document.getElementById('d-tbar').style.width  = (dTimeLeft/60*100)+'%';
+    oppTick++;
+    if(oppTick%5===0 && duelIdx>0 && Math.random()<0.65){
+      dp2+=2; document.getElementById('dq-p2s').textContent=dp2;
+    }
+    if(dTimeLeft<=0){ clearInterval(dTimer); endDuel(); }
+  },1000);
+}
+
+function showDuelQ(){
+  if(duelIdx >= duelQs.length){ endDuel(); return; }
+  dAnswered = false;
+  const q = duelQs[duelIdx];
+  document.getElementById('d-qnum').textContent = 'Q'+(duelIdx+1)+' of 10';
+  document.getElementById('d-qtxt').textContent = q.q;
+  document.getElementById('d-fb').textContent   = '';
+  const opts = document.getElementById('d-opts');
+  opts.innerHTML='';
+  shuffle(q.o).forEach(opt=>{
+    const b = document.createElement('button');
+    b.className='opt-btn'; b.textContent=opt;
+    b.onclick = ()=>answerDuel(opt,q.a,b);
+    opts.appendChild(b);
+  });
+}
+
+function answerDuel(chosen, correct, btn){
+  if(dAnswered) return;
+  dAnswered = true;
+  document.querySelectorAll('#d-opts .opt-btn').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===correct) b.classList.add('show-correct');
+  });
+  if(chosen===correct){
+    btn.classList.remove('show-correct'); btn.classList.add('correct');
+    dp1+=2; document.getElementById('dq-p1s').textContent=dp1;
+    document.getElementById('d-fb').textContent = '✓ Correct!';
+    document.getElementById('d-fb').style.color = '#4ADE80';
+  } else {
+    btn.classList.add('wrong');
+    document.getElementById('d-fb').textContent = '✗ Wrong!';
+    document.getElementById('d-fb').style.color = '#F87171';
+  }
+  duelIdx++;
+  setTimeout(()=>{ if(duelIdx<10 && dTimeLeft>0) showDuelQ(); else endDuel(); }, 950);
+}
+
+async function endDuel(){
+  clearInterval(dTimer);
+  const win=dp1>dp2, draw=dp1===dp2;
+  const pts = win ? dp1 : draw ? Math.floor(dp1/2) : Math.floor(dp1*0.5);
+  if(S.cu){
+    S.cu.points  = (S.cu.points||0)  + pts;
+    S.cu.correct = (S.cu.correct||0) + Math.floor(dp1/2);
+    S.cu.played  = (S.cu.played||0)  + 1;
+    await saveUser(S.cu);
+  }
+  hide('d-quiz'); show('d-result');
+  document.getElementById('dr-p1n').textContent  = S.cu ? S.cu.name.split(' ')[0] : 'You';
+  document.getElementById('dr-p2n').textContent  = dOppName||'Opp';
+  document.getElementById('dr-p1s').textContent  = dp1;
+  document.getElementById('dr-p2s').textContent  = dp2;
+  document.getElementById('d-r-pts').textContent = '⭐ +'+pts+' Points Earned';
+  if(draw){
+    document.getElementById('d-r-icon').textContent  = '🤝';
+    document.getElementById('d-r-title').textContent = 'DRAW!';
+    document.getElementById('d-r-sub').textContent   = 'Evenly matched!';
+  } else if(win){
+    document.getElementById('d-r-icon').textContent  = '🏆';
+    document.getElementById('d-r-title').textContent = 'YOU WIN!';
+    document.getElementById('d-r-sub').textContent   = 'Excellent performance!';
+  } else {
+    document.getElementById('d-r-icon').textContent  = '😔';
+    document.getElementById('d-r-title').textContent = 'YOU LOSE';
+    document.getElementById('d-r-sub').textContent   = (dOppName||'Opponent') + ' was better this time!';
+  }
+  renderHome();
+}
+
+// ===== LEADERBOARDS =====
+async function renderLBs(){
+  const all = await getAllUsers();
+  const sorted = all.sort((a,b)=>(b.points||0)-(a.points||0));
+  renderList('lb-solo-list', sorted.slice(0,15));
+
+  const argP  = sorted.filter(u=>u.team==='ARG');
+  const braP  = sorted.filter(u=>u.team==='BRA');
+  const argT  = argP.reduce((s,u)=>s+(u.points||0),0);
+  const braT  = braP.reduce((s,u)=>s+(u.points||0),0);
+  const total = argT+braT || 1;
+  const aW    = Math.max(10, Math.round(argT/total*100));
+  const bW    = 100 - aW;
+
+  document.getElementById('team-battle-block').innerHTML=`
+    <div class="card" style="text-align:center">
+      <p style="font-size:11px;font-weight:800;color:var(--team-text3);letter-spacing:1.5px;margin-bottom:8px">⚔️ TEAM BATTLE</p>
+      <div class="battle-bar">
+        <div class="arg-seg" style="flex:${aW}">🇦🇷 ${argT}pts</div>
+        <div class="bra-seg" style="flex:${bW}">🇧🇷 ${braT}pts</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <div><div style="font-family:'Bebas Neue';font-size:28px;color:#74ACDF">${argT}</div>
+             <div style="font-size:11px;font-weight:700;color:#74ACDF;opacity:0.8">🇦🇷 ARG POINTS</div></div>
+        <div><div style="font-family:'Bebas Neue';font-size:28px;color:#33C066">${braT}</div>
+             <div style="font-size:11px;font-weight:700;color:#33C066;opacity:0.8">🇧🇷 BRA POINTS</div></div>
+      </div>
+      <p style="font-size:13px;font-weight:700;margin-top:10px;color:${argT>braT?'#74ACDF':braT>argT?'#33C066':'var(--team-text3)'}">
+        ${argT>braT?'🇦🇷 Argentina is leading!':braT>argT?'🇧🇷 Brazil is leading!':'⚖️ All tied!'}
+      </p>
+    </div>`;
+  renderList('lb-arg-list', argP.slice(0,5));
+  renderList('lb-bra-list', braP.slice(0,5));
+}
+
+function renderList(id, players){
+  const c = document.getElementById(id);
+  if(!players.length){ c.innerHTML='<p style="text-align:center;font-size:13px;color:var(--team-text3);padding:14px">No players yet</p>'; return; }
+  c.innerHTML = players.map((p,i)=>{
+    const rc   = i===0?'r1':i===1?'r2':i===2?'r3':'r-n';
+    const isMe = S.cu && p.email===S.cu.email;
+    const tf   = p.team==='ARG'?'🇦🇷':p.team==='BRA'?'🇧🇷':'';
+    return `<div class="lb-row${isMe?' me':''}">
+      <div class="rank-badge ${rc}">${i+1}</div>
+      <div class="lb-avatar">${p.name.charAt(0).toUpperCase()}</div>
+      <div class="lb-name">${p.name}${isMe?' <span style="color:var(--team-primary);font-size:11px">(You)</span>':''} ${tf}</div>
+      <div class="lb-pts">${p.points||0}<span>pts</span></div>
+    </div>`;
+  }).join('');
+}
+
+function switchLB(tab){
+  document.getElementById('lb-tab-solo').classList.toggle('active', tab==='solo');
+  document.getElementById('lb-tab-team').classList.toggle('active', tab==='team');
+  document.getElementById('lb-solo-pane').style.display = tab==='solo'?'block':'none';
+  document.getElementById('lb-team-pane').style.display = tab==='team'?'block':'none';
+}
+
+// ===== SEED DEMO PLAYERS & BOOT =====
+const SEED_PLAYERS = [
+  {name:'Messi Fan 99',  email:'messi@demo.com',  phone:'+8801700000001', password:'Demo123', team:'ARG', points:148, correct:74, played:12, seenQs:[]},
+  {name:'SambaKing',     email:'samba@demo.com',  phone:'+8801700000002', password:'Demo123', team:'BRA', points:122, correct:61, played:10, seenQs:[]},
+  {name:'GauchoGol',     email:'gaucho@demo.com', phone:'+8801700000003', password:'Demo123', team:'ARG', points:96,  correct:48, played:8,  seenQs:[]},
+  {name:'Carioca10',     email:'carioca@demo.com',phone:'+8801700000004', password:'Demo123', team:'BRA', points:84,  correct:42, played:7,  seenQs:[]},
+  {name:'LaPulga 10',    email:'pulga@demo.com',  phone:'+8801700000005', password:'Demo123', team:'ARG', points:72,  correct:36, played:6,  seenQs:[]},
+  {name:'Neymar Fan',    email:'ney@demo.com',    phone:'+8801700000006', password:'Demo123', team:'BRA', points:60,  correct:30, played:5,  seenQs:[]},
+];
+// 💡 Demo accounts above — sign in with email + phone + password Demo123
+
+async function boot(){
+  // Show loading state
+  document.getElementById('app').innerHTML +=
+    '<div id="db-loading" style="position:fixed;inset:0;background:var(--team-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px">' +
+    '<div style="font-family:Bebas Neue,cursive;font-size:42px;color:var(--team-primary);letter-spacing:4px">🏆 WORLD CUP QUIZ MASTER</div>' +
+    '<div class="spinner"></div>' +
+    '<p style="font-size:13px;color:var(--team-text3)">Loading database...</p></div>';
+
+  try {
+    await initDB();
+
+    // Seed demo players (only if they don't exist yet)
+    for(const p of SEED_PLAYERS){
+      const existing = await getUser(p.email);
+      if(!existing) await saveUser(p);
+    }
+
+    // Restore session
+    const session = await getSession();
+    if(session){
+      const user = await getUser(session.email);
+      if(user){
+        S.cu = user;
+        applyTheme(user.team);
+        if(!user.team) showScreen('team');
+        else { renderHome(); showScreen('home'); }
+      }
+    }
+  } catch(err) {
+    console.error('IndexedDB boot error:', err);
+    toast('DB error — using memory mode');
+  }
+
+  // Remove loading overlay
+  const loader = document.getElementById('db-loading');
+  if(loader) loader.remove();
+}
+
+// Kick off
+boot();
+</script>
+</body>
+</html>
