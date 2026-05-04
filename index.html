@@ -181,6 +181,36 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
 .start-desc{font-size:14px;color:var(--team-text2);line-height:1.6;margin-bottom:20px}
 .rules-card{background:var(--team-bg3);border:1.5px solid var(--team-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--team-text2);line-height:1.7}
 </style>
+  <!-- Firebase Realtime Database SDK -->
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+      "firebase/database": "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"
+    }
+  }
+  </script>
+  <script type="module">
+    import { initializeApp } from "firebase/app";
+    import { getDatabase, ref, set, get, update, remove, onValue, off } from "firebase/database";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
+      authDomain: "wcquizmaster-5cd79.firebaseapp.com",
+      databaseURL: "https://wcquizmaster-5cd79-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "wcquizmaster-5cd79",
+      storageBucket: "wcquizmaster-5cd79.firebasestorage.app",
+      messagingSenderId: "95528362739",
+      appId: "1:95528362739:web:1719a798676732c07c8d86"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const db    = getDatabase(fbApp);
+
+    // Expose to global so main script can use them
+    window._fb = { db, ref, set, get, update, remove, onValue, off };
+    document.dispatchEvent(new Event('fb-ready'));
+  </script>
 </head>
 <body>
 <div id="app">
@@ -1142,80 +1172,213 @@ async function endSolo(){
   renderHome();
 }
 
-// ===== DUEL =====
+// ===== DUEL — Firebase Real-time Multiplayer =====
+
+let duelRole      = null;  // 'host' or 'guest'
+let duelRoomRef   = null;  // Firebase ref for this room
+let duelListeners = [];    // track all onValue listeners for cleanup
+
+function fbReady(){ return window._fb && window._fb.db; }
+
 function resetDuelFull(){
   clearInterval(dTimer);
+  // Detach all Firebase listeners
+  duelListeners.forEach(({ref, fn}) => { try{ window._fb.off(ref, fn); }catch(e){} });
+  duelListeners = [];
+  // If host, clean up room from Firebase
+  if(duelRole==='host' && duelRoomRef){
+    try{ window._fb.remove(duelRoomRef); }catch(e){}
+  }
+  duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
   show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result');
-  duelOppJoined=false; duelCode='';
+  document.getElementById('d-join-err').classList.remove('show');
 }
 function resetDuel(){ resetDuelFull(); }
 
-function createLobby(){
+async function createLobby(){
+  if(!fbReady()){ toast('⏳ Connecting to server, please wait...'); return; }
+  const { db, ref, set, onValue } = window._fb;
+
   duelCode = Math.floor(100000+Math.random()*900000).toString();
-  document.getElementById('d-code').textContent = duelCode;
-  hide('d-lobby'); show('d-waiting');
-  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'P';
+  duelRole = 'host';
+
+  // Pick 10 questions now so both players get identical set
+  const qs = await pick10();
+  const qData = qs.map(q=>({ q:q.q, a:q.a, o:q.o }));
+
+  duelRoomRef = ref(db, 'duels/' + duelCode);
+
+  // Write room to Firebase
+  await set(duelRoomRef, {
+    host:   { name: S.cu ? S.cu.name.split(' ')[0] : 'Host', score: 0, done: false },
+    guest:  null,
+    questions: qData,
+    status: 'waiting',   // waiting → playing → finished
+    startedAt: null
+  });
+
+  document.getElementById('d-code').textContent    = duelCode;
+  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'H';
   document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  duelOppJoined = false;
+  document.getElementById('d-conn-status').innerHTML = '🟢 Connected — waiting for opponent...';
   document.getElementById('d-start-btn').disabled    = true;
   document.getElementById('d-start-btn').textContent = 'Waiting for opponent...';
+
+  hide('d-lobby'); show('d-waiting');
+
+  // Listen for guest joining
+  const guestRef = ref(db, 'duels/' + duelCode + '/guest');
+  const guestFn  = onValue(guestRef, snap => {
+    const guest = snap.val();
+    if(guest && guest.name){
+      duelOppJoined = true;
+      dOppName = guest.name;
+      document.getElementById('d-p2-slot').innerHTML =
+        `<div class="p-avatar" style="background:#7c3aed">${guest.name.charAt(0)}</div>
+         <div class="p-name">${guest.name}</div>
+         <span class="p-status ready">READY</span>`;
+      document.getElementById('d-start-btn').disabled    = false;
+      document.getElementById('d-start-btn').textContent = '▶ Start Duel Now!';
+      document.getElementById('d-conn-status').innerHTML = '🟢 Opponent joined! Ready to start.';
+      toast(guest.name + ' joined the lobby! ⚔️');
+    }
+  });
+  duelListeners.push({ ref: guestRef, fn: guestFn });
+
+  // Listen in case guest starts (if guest somehow triggers start)
+  const statusRef = ref(db, 'duels/' + duelCode + '/status');
+  const statusFn  = onValue(statusRef, snap => {
+    if(snap.val() === 'playing') runDuelGame();
+  });
+  duelListeners.push({ ref: statusRef, fn: statusFn });
 }
 
-function joinLobby(){
+async function joinLobby(){
+  if(!fbReady()){ toast('⏳ Connecting to server, please wait...'); return; }
   const code = document.getElementById('join-code').value.trim();
-  if(code.length!==6||isNaN(code)){ toast('Enter a valid 6-digit code'); return; }
-  duelCode = code;
-  document.getElementById('d-code').textContent   = code;
-  hide('d-lobby'); show('d-waiting');
-  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'P';
+  const errEl = document.getElementById('d-join-err');
+  errEl.classList.remove('show');
+
+  if(code.length !== 6 || isNaN(code)){
+    errEl.textContent = 'Enter a valid 6-digit code';
+    errEl.classList.add('show'); return;
+  }
+
+  const { db, ref, get, set, onValue } = window._fb;
+
+  // Check room exists
+  const roomSnap = await get(ref(db, 'duels/' + code));
+  if(!roomSnap.exists()){
+    errEl.textContent = 'Room not found. Check the code and try again.';
+    errEl.classList.add('show'); return;
+  }
+  const room = roomSnap.val();
+  if(room.status !== 'waiting'){
+    errEl.textContent = 'This game has already started or finished.';
+    errEl.classList.add('show'); return;
+  }
+  if(room.guest){
+    errEl.textContent = 'This lobby is full.';
+    errEl.classList.add('show'); return;
+  }
+
+  duelCode  = code;
+  duelRole  = 'guest';
+  dOppName  = room.host.name;
+  duelRoomRef = ref(db, 'duels/' + code);
+
+  // Write guest into room
+  await set(ref(db, 'duels/' + code + '/guest'), {
+    name: S.cu ? S.cu.name.split(' ')[0] : 'Guest', score: 0, done: false
+  });
+
+  document.getElementById('d-code').textContent    = code;
+  document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'G';
   document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  setTimeout(simJoin, 800);
+  document.getElementById('d-p2-slot').innerHTML   =
+    `<div class="p-avatar" style="background:var(--team-primary)">${room.host.name.charAt(0)}</div>
+     <div class="p-name">${room.host.name}</div>
+     <span class="p-status ready">READY</span>`;
+  document.getElementById('d-conn-status').innerHTML = '🟢 Joined! Waiting for host to start...';
+  document.getElementById('d-start-btn').disabled    = true;
+  document.getElementById('d-start-btn').textContent = 'Waiting for host to start...';
+
+  hide('d-lobby'); show('d-waiting');
+
+  // Guest listens for status → playing
+  const statusRef = ref(db, 'duels/' + code + '/status');
+  const statusFn  = onValue(statusRef, snap => {
+    if(snap.val() === 'playing') runDuelGame();
+  });
+  duelListeners.push({ ref: statusRef, fn: statusFn });
 }
 
 function copyCode(){
   const code = document.getElementById('d-code').textContent;
-  navigator.clipboard.writeText('Join my World Cup Quiz Master duel! Code: '+code)
-    .then(()=>toast('Code copied to clipboard! 📋'))
-    .catch(()=>toast('Code: '+code));
+  navigator.clipboard.writeText('Join my World Cup Quiz Master duel! Code: ' + code)
+    .then(()=>toast('Code copied! Share it with your opponent 📋'))
+    .catch(()=>toast('Code: ' + code));
 }
 
-function simJoin(){
-  const bots=['Rodrigo B.','Nico A.','Samba93','LaPulga10','Carioca⚡','GauchoGol','Pele_Fan','ArgNinja'];
-  dOppName = bots[Math.floor(Math.random()*bots.length)];
-  const cols=['#7c3aed','#059669','#DC2626','#F59E0B','#2563EB','#D97706'];
-  const col  = cols[Math.floor(Math.random()*cols.length)];
-  document.getElementById('d-p2-slot').innerHTML =
-    `<div class="p-avatar" style="background:${col}">${dOppName.charAt(0)}</div>
-     <div class="p-name">${dOppName}</div>
-     <span class="p-status ready">READY</span>`;
-  duelOppJoined = true;
-  document.getElementById('d-start-btn').disabled    = false;
-  document.getElementById('d-start-btn').textContent = '▶ Start Duel Now!';
-  toast(dOppName + ' joined the lobby! ⚔️');
+async function hostStartDuel(){
+  if(!duelOppJoined){ toast('Waiting for opponent to join!'); return; }
+  const { db, ref, update } = window._fb;
+  // Signal both players to start
+  await update(ref(db, 'duels/' + duelCode), {
+    status: 'playing',
+    startedAt: Date.now()
+  });
+  // runDuelGame() will be triggered by the status listener on both devices
 }
 
-async function startDuel(){
-  if(!duelOppJoined){ toast('Waiting for opponent!'); return; }
-  duelQs = await pick10();
+async function runDuelGame(){
+  const { db, ref, get, update, onValue } = window._fb;
+
+  // Detach waiting-room listeners
+  duelListeners.forEach(({ref:r, fn}) => { try{ window._fb.off(r, fn); }catch(e){} });
+  duelListeners = [];
+
+  // Fetch questions and opponent name from Firebase
+  const snap = await get(ref(db, 'duels/' + duelCode));
+  const room  = snap.val();
+  duelQs  = room.questions;
+  dOppName = duelRole === 'host' ? room.guest.name : room.host.name;
+
   duelIdx=0; dp1=0; dp2=0; dTimeLeft=60; dAnswered=false;
+
   hide('d-waiting'); show('d-quiz');
+
   document.getElementById('dq-p1n').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  document.getElementById('dq-p2n').textContent = dOppName || 'Opp';
+  document.getElementById('dq-p2n').textContent = dOppName;
   document.getElementById('dq-p1s').textContent = 0;
   document.getElementById('dq-p2s').textContent = 0;
+
+  // Listen to opponent's score in real-time
+  const oppScorePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/score';
+  const oppRef = ref(db, oppScorePath);
+  const oppFn  = onValue(oppRef, snap => {
+    if(snap.val() !== null) dp2 = snap.val();
+    document.getElementById('dq-p2s').textContent = dp2;
+  });
+  duelListeners.push({ ref: oppRef, fn: oppFn });
+
+  // Listen for opponent finishing
+  const oppDonePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/done';
+  const oppDoneRef = ref(db, oppDonePath);
+  const oppDoneFn  = onValue(oppDoneRef, snap => {
+    if(snap.val() === true && duelIdx >= duelQs.length) endDuel();
+  });
+  duelListeners.push({ ref: oppDoneRef, fn: oppDoneFn });
+
   showDuelQ();
+
   clearInterval(dTimer);
-  let oppTick = 0;
   dTimer = setInterval(()=>{
     dTimeLeft--;
     document.getElementById('d-timer').textContent = dTimeLeft;
     document.getElementById('d-tbar').style.width  = (dTimeLeft/60*100)+'%';
-    oppTick++;
-    if(oppTick%5===0 && duelIdx>0 && Math.random()<0.65){
-      dp2+=2; document.getElementById('dq-p2s').textContent=dp2;
-    }
     if(dTimeLeft<=0){ clearInterval(dTimer); endDuel(); }
-  },1000);
+  }, 1000);
 }
 
 function showDuelQ(){
@@ -1230,12 +1393,12 @@ function showDuelQ(){
   shuffle(q.o).forEach(opt=>{
     const b = document.createElement('button');
     b.className='opt-btn'; b.textContent=opt;
-    b.onclick = ()=>answerDuel(opt,q.a,b);
+    b.onclick = ()=>answerDuel(opt, q.a, b);
     opts.appendChild(b);
   });
 }
 
-function answerDuel(chosen, correct, btn){
+async function answerDuel(chosen, correct, btn){
   if(dAnswered) return;
   dAnswered = true;
   document.querySelectorAll('#d-opts .opt-btn').forEach(b=>{
@@ -1244,7 +1407,8 @@ function answerDuel(chosen, correct, btn){
   });
   if(chosen===correct){
     btn.classList.remove('show-correct'); btn.classList.add('correct');
-    dp1+=2; document.getElementById('dq-p1s').textContent=dp1;
+    dp1+=2;
+    document.getElementById('dq-p1s').textContent = dp1;
     document.getElementById('d-fb').textContent = '✓ Correct!';
     document.getElementById('d-fb').style.color = '#4ADE80';
   } else {
@@ -1252,26 +1416,56 @@ function answerDuel(chosen, correct, btn){
     document.getElementById('d-fb').textContent = '✗ Wrong!';
     document.getElementById('d-fb').style.color = '#F87171';
   }
+  // Push my score to Firebase so opponent sees it live
+  const { db, ref, update } = window._fb;
+  const myPath = 'duels/' + duelCode + '/' + duelRole;
+  await update(ref(db, myPath), { score: dp1 });
+
   duelIdx++;
-  setTimeout(()=>{ if(duelIdx<10 && dTimeLeft>0) showDuelQ(); else endDuel(); }, 950);
+  if(duelIdx >= duelQs.length){
+    // Mark myself as done
+    await update(ref(db, myPath), { done: true });
+    clearInterval(dTimer);
+    endDuel();
+  } else if(dTimeLeft > 0){
+    setTimeout(showDuelQ, 950);
+  }
 }
 
 async function endDuel(){
   clearInterval(dTimer);
+  // Detach all listeners
+  duelListeners.forEach(({ref:r, fn}) => { try{ window._fb.off(r, fn); }catch(e){} });
+  duelListeners = [];
+
+  // Final score sync from Firebase
+  const { db, ref, get, remove } = window._fb;
+  const snap = await get(ref(db, 'duels/' + duelCode));
+  if(snap.exists()){
+    const room = snap.val();
+    dp1 = (duelRole==='host' ? room.host?.score : room.guest?.score) || dp1;
+    dp2 = (duelRole==='host' ? room.guest?.score : room.host?.score) || dp2;
+    // Host cleans up the room after a short delay
+    if(duelRole==='host') setTimeout(()=>{ try{ remove(ref(db,'duels/'+duelCode)); }catch(e){} }, 5000);
+  }
+
   const win=dp1>dp2, draw=dp1===dp2;
   const pts = win ? dp1 : draw ? Math.floor(dp1/2) : Math.floor(dp1*0.5);
+
   if(S.cu){
     S.cu.points  = (S.cu.points||0)  + pts;
     S.cu.correct = (S.cu.correct||0) + Math.floor(dp1/2);
     S.cu.played  = (S.cu.played||0)  + 1;
     await saveUser(S.cu);
   }
+
   hide('d-quiz'); show('d-result');
   document.getElementById('dr-p1n').textContent  = S.cu ? S.cu.name.split(' ')[0] : 'You';
-  document.getElementById('dr-p2n').textContent  = dOppName||'Opp';
+  document.getElementById('dr-p2n').textContent  = dOppName || 'Opponent';
   document.getElementById('dr-p1s').textContent  = dp1;
   document.getElementById('dr-p2s').textContent  = dp2;
   document.getElementById('d-r-pts').textContent = '⭐ +'+pts+' Points Earned';
+
   if(draw){
     document.getElementById('d-r-icon').textContent  = '🤝';
     document.getElementById('d-r-title').textContent = 'DRAW!';
@@ -1366,6 +1560,11 @@ async function boot(){
     '<p style="font-size:13px;color:var(--team-text3)">Loading database...</p></div>';
 
   try {
+    // Show Firebase connection status
+    document.addEventListener('fb-ready', ()=>{
+      const el = document.getElementById('d-conn-status');
+      if(el) el.innerHTML = '🟢 Connected to server';
+    });
     await initDB();
 
     // Seed demo players (only if they don't exist yet)
