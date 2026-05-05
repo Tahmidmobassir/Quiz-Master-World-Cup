@@ -181,27 +181,40 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
 .start-desc{font-size:14px;color:var(--team-text2);line-height:1.6;margin-bottom:20px}
 .rules-card{background:var(--team-bg3);border:1.5px solid var(--team-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--team-text2);line-height:1.7}
 </style>
-  <!-- Firebase Compat SDK (global, no imports needed) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js" crossorigin="anonymous"></script>
   <script>
-    try {
-      const firebaseConfig = {
-        apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
-        authDomain: "wcquizmaster-5cd79.firebaseapp.com",
-        databaseURL: "https://wcquizmaster-5cd79-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "wcquizmaster-5cd79",
-        storageBucket: "wcquizmaster-5cd79.firebasestorage.app",
-        messagingSenderId: "95528362739",
-        appId: "1:95528362739:web:1719a798676732c07c8d86"
-      };
-      firebase.initializeApp(firebaseConfig);
-      window._fbDB    = firebase.database();
-      window._fbReady = true;
-      console.log('✅ Firebase connected');
-    } catch(e) {
-      console.error('Firebase init error:', e);
-      window._fbReady = false;
+    function initFirebase(){
+      try {
+        if(typeof firebase === 'undefined'){
+          console.warn('Firebase SDK not loaded — duel mode requires internet connection');
+          window._fbReady = false;
+          return;
+        }
+        const firebaseConfig = {
+          apiKey: "AIzaSyDAC9AXRBDiA6tPU1byUX9xkXHwU7XGuWw",
+          authDomain: "wcquizmaster-5cd79.firebaseapp.com",
+          databaseURL: "https://wcquizmaster-5cd79-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "wcquizmaster-5cd79",
+          storageBucket: "wcquizmaster-5cd79.firebasestorage.app",
+          messagingSenderId: "95528362739",
+          appId: "1:95528362739:web:1719a798676732c07c8d86"
+        };
+        firebase.initializeApp(firebaseConfig);
+        window._fbDB    = firebase.database();
+        window._fbReady = true;
+        console.log('✅ Firebase connected');
+      } catch(e) {
+        console.error('Firebase init error:', e);
+        window._fbReady = false;
+      }
+    }
+    // Run immediately if Firebase loaded, else wait for it
+    if(typeof firebase !== 'undefined'){
+      initFirebase();
+    } else {
+      window.addEventListener('load', initFirebase);
     }
   </script>
 </head>
@@ -226,11 +239,17 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       <div class="field-group">
         <label class="field-label">Email Address</label>
         <input type="email" id="li-email" placeholder="you@example.com">
+        <span class="err" id="li-email-err"></span>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Phone Number</label>
+        <input type="tel" id="li-phone" placeholder="+880 1XXX-XXXXXX">
+        <span class="err" id="li-phone-err"></span>
       </div>
       <div class="field-group">
         <label class="field-label">Password</label>
         <input type="password" id="li-pass" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()">
-        <span class="err" id="li-err">Invalid email or password</span>
+        <span class="err" id="li-err"></span>
       </div>
       <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
       <p style="text-align:center;font-size:12px;color:var(--team-text3);margin-top:12px">Don't have an account? <a href="#" onclick="switchAuthTab('register')" style="color:var(--team-primary);font-weight:700;text-decoration:none">Register here →</a></p>
@@ -575,127 +594,233 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
 <script>
 // ===== QUESTION BANK =====
 const QS=[
+  // ── WORLD CUP WINNERS & HISTORY ──
   {q:"Which country won the 2022 FIFA World Cup?",a:"Argentina",o:["Brazil","France","Argentina","Croatia"]},
   {q:"How many times has Brazil won the World Cup?",a:"5",o:["4","5","6","3"]},
-  {q:"Which player is known as 'La Pulga' (The Flea)?",a:"Lionel Messi",o:["Neymar","Ronaldo","Lionel Messi","Mbappé"]},
-  {q:"In which country was the first FIFA World Cup held?",a:"Uruguay",o:["Brazil","France","Uruguay","Italy"]},
-  {q:"How many players are on a football team on the field?",a:"11",o:["10","11","12","9"]},
-  {q:"Which Brazilian legend is considered one of the greatest of all time?",a:"Pelé",o:["Ronaldo","Pelé","Romário","Rivaldo"]},
-  {q:"What colour are Argentina's home shirts?",a:"Light blue and white",o:["Yellow","Red","Light blue and white","Green"]},
-  {q:"What colour are Brazil's home shirts?",a:"Yellow",o:["Green","Yellow","Blue","White"]},
+  {q:"Which country won the 2018 FIFA World Cup?",a:"France",o:["Croatia","Brazil","France","Belgium"]},
+  {q:"Which country won the 2014 FIFA World Cup?",a:"Germany",o:["Argentina","Brazil","Germany","France"]},
+  {q:"Which country won the 2010 FIFA World Cup?",a:"Spain",o:["Netherlands","Brazil","Spain","Germany"]},
+  {q:"Which country won the 2006 FIFA World Cup?",a:"Italy",o:["France","Brazil","Italy","Germany"]},
+  {q:"Which country won the 2002 FIFA World Cup?",a:"Brazil",o:["Germany","Brazil","Turkey","England"]},
+  {q:"Which country won the 1998 FIFA World Cup?",a:"France",o:["Brazil","France","Croatia","Italy"]},
+  {q:"Which country won the 1994 FIFA World Cup?",a:"Brazil",o:["Brazil","Italy","Sweden","Romania"]},
+  {q:"Which country won the 1990 FIFA World Cup?",a:"West Germany",o:["Argentina","West Germany","Italy","England"]},
+  {q:"Which country won the 1986 FIFA World Cup?",a:"Argentina",o:["Argentina","West Germany","France","Belgium"]},
+  {q:"Which country won the 1982 FIFA World Cup?",a:"Italy",o:["West Germany","Brazil","Italy","France"]},
+  {q:"Which country won the 1978 FIFA World Cup?",a:"Argentina",o:["Netherlands","Argentina","Brazil","Italy"]},
+  {q:"Which country won the 1974 FIFA World Cup?",a:"West Germany",o:["Netherlands","West Germany","Poland","Brazil"]},
+  {q:"Which country won the 1970 FIFA World Cup?",a:"Brazil",o:["Italy","Brazil","West Germany","Uruguay"]},
+  {q:"In which year was the first FIFA World Cup held?",a:"1930",o:["1926","1930","1934","1938"]},
+  {q:"Which country hosted the 2022 FIFA World Cup?",a:"Qatar",o:["UAE","Saudi Arabia","Qatar","Bahrain"]},
+  {q:"Which country hosted the 2018 FIFA World Cup?",a:"Russia",o:["France","Germany","Russia","Spain"]},
+  {q:"Which country hosted the 2014 FIFA World Cup?",a:"Brazil",o:["Argentina","Brazil","Colombia","USA"]},
+  {q:"Which country hosted the 2010 FIFA World Cup?",a:"South Africa",o:["South Africa","Egypt","Morocco","Nigeria"]},
+  {q:"The 2026 FIFA World Cup will be hosted by which countries?",a:"USA, Canada & Mexico",o:["Australia","USA, Canada & Mexico","Saudi Arabia","Spain & Portugal"]},
+  {q:"How many teams compete in the FIFA World Cup final tournament (2026 onwards)?",a:"48",o:["32","36","48","64"]},
+  {q:"Which nation has qualified for every single World Cup?",a:"Brazil",o:["Argentina","Germany","Italy","Brazil"]},
+  {q:"In the 2014 World Cup semi-final, Germany beat Brazil by what score?",a:"7-1",o:["5-0","6-1","7-1","8-2"]},
+  {q:"Which stadium hosted the 2022 World Cup Final?",a:"Lusail Stadium",o:["Al Bayt","Lusail Stadium","Al Thumama","Education City"]},
+  {q:"The first ever World Cup was won by which country?",a:"Uruguay",o:["Brazil","France","Uruguay","Italy"]},
+
+  // ── ARGENTINA ──
   {q:"How many World Cups has Argentina won?",a:"3",o:["2","3","4","1"]},
   {q:"Which year did Argentina first win the World Cup?",a:"1978",o:["1974","1978","1982","1986"]},
-  {q:"Which stadium hosted the 2022 World Cup Final?",a:"Lusail Stadium",o:["Al Bayt","Lusail Stadium","Al Thumama","Education City"]},
-  {q:"Who won the Golden Ball at the 2022 World Cup?",a:"Lionel Messi",o:["Mbappé","Modric","Lionel Messi","Benzema"]},
-  {q:"What is the name of Argentina's national football team?",a:"La Albiceleste",o:["La Roja","La Albiceleste","Les Bleus","A Seleção"]},
-  {q:"What is Brazil's national team nickname?",a:"A Seleção",o:["Os Verdes","A Seleção","Canarinho","Verde-Amarela"]},
-  {q:"Which player has won the most Ballon d'Or awards?",a:"Lionel Messi",o:["Ronaldo","Lionel Messi","Ronaldinho","Platini"]},
-  {q:"In which city is the Maracanã stadium located?",a:"Rio de Janeiro",o:["São Paulo","Rio de Janeiro","Brasília","Salvador"]},
-  {q:"How long is a standard football match?",a:"90 minutes",o:["80 minutes","90 minutes","100 minutes","120 minutes"]},
-  {q:"Who scored the 'Goal of the Century' in 1986?",a:"Maradona",o:["Pelé","Messi","Maradona","Ronaldo"]},
-  {q:"Which player wore the number 10 for Argentina at the 2022 World Cup?",a:"Lionel Messi",o:["Di María","Lionel Messi","Dybala","Lautaro"]},
-  {q:"In which year was the first FIFA World Cup held?",a:"1930",o:["1926","1930","1934","1938"]},
-  {q:"Who is Brazil's all-time top scorer?",a:"Neymar",o:["Pelé","Ronaldo","Neymar","Romário"]},
-  {q:"Which team did Lionel Messi play for most of his career?",a:"Barcelona",o:["Real Madrid","Barcelona","Manchester City","PSG"]},
-  {q:"How many teams compete in the FIFA World Cup final tournament?",a:"32",o:["24","28","32","36"]},
-  {q:"Which country hosted the 2018 FIFA World Cup?",a:"Russia",o:["France","Germany","Russia","Spain"]},
-  {q:"Who won the 2018 FIFA World Cup?",a:"France",o:["Croatia","Brazil","France","Belgium"]},
-  {q:"Which player is nicknamed 'O Rei' (The King)?",a:"Pelé",o:["Ronaldo","Pelé","Neymar","Ronaldinho"]},
-  {q:"How many minutes is extra time in a knockout game?",a:"30 minutes",o:["20 minutes","30 minutes","40 minutes","25 minutes"]},
-  {q:"Which country won the 2014 FIFA World Cup?",a:"Germany",o:["Argentina","Brazil","Germany","France"]},
-  {q:"In the 2014 World Cup semi-final, Germany beat Brazil by what score?",a:"7-1",o:["5-0","6-1","7-1","8-2"]},
-  {q:"What is the name of the World Cup trophy?",a:"FIFA World Cup Trophy",o:["Golden Boot","Jules Rimet Trophy","FIFA World Cup Trophy","Golden Globe"]},
-  {q:"Which country invented modern football (soccer)?",a:"England",o:["Brazil","England","Spain","France"]},
+  {q:"Argentina's second World Cup win came in which year?",a:"1986",o:["1982","1986","1990","1994"]},
+  {q:"Argentina's third World Cup win came in which year?",a:"2022",o:["2014","2018","2022","2026"]},
+  {q:"What is the name of Argentina's national football team nickname?",a:"La Albiceleste",o:["La Roja","La Albiceleste","Les Bleus","A Seleção"]},
+  {q:"What colour are Argentina's home shirts?",a:"Light blue and white",o:["Yellow","Red","Light blue and white","Green"]},
   {q:"Which city in Argentina is Lionel Messi from?",a:"Rosario",o:["Buenos Aires","Rosario","Córdoba","Mendoza"]},
-  {q:"Who has scored the most goals in World Cup history overall?",a:"Miroslav Klose",o:["Ronaldo (Brazil)","Miroslav Klose","Gerd Müller","Messi"]},
   {q:"Which Argentine manager won the 2022 World Cup?",a:"Lionel Scaloni",o:["Sabella","Bilardo","Lionel Scaloni","Menotti"]},
-  {q:"Which Brazilian player won the Ballon d'Or in 2005?",a:"Ronaldinho",o:["Ronaldo","Adriano","Kaká","Ronaldinho"]},
-  {q:"What colour card means a player is sent off?",a:"Red",o:["Yellow","Orange","Red","Black"]},
-  {q:"How many minutes is extra time (both halves combined)?",a:"30 minutes",o:["20 minutes","30 minutes","40 minutes","25 minutes"]},
-  {q:"Which South American country has won the Copa América the most times?",a:"Argentina",o:["Brazil","Uruguay","Argentina","Chile"]},
-  {q:"What is the award for the top scorer at the World Cup?",a:"Golden Boot",o:["Golden Glove","Golden Boot","Golden Ball","Golden Star"]},
-  {q:"Which club did Pelé play for most of his career?",a:"Santos",o:["Flamengo","Corinthians","Santos","Vasco da Gama"]},
-  {q:"What does a yellow card mean in football?",a:"Warning / caution",o:["Sent off","Warning / caution","5-minute ban","Free kick"]},
-  {q:"Which year did Messi finally win the World Cup?",a:"2022",o:["2014","2018","2022","2010"]},
-  {q:"How many goals did Messi score at the 2022 World Cup?",a:"7",o:["5","6","7","8"]},
-  {q:"Who is known as 'The Phenomenon' in Brazilian football?",a:"Ronaldo R9",o:["Pelé","Neymar","Ronaldo R9","Romário"]},
-  {q:"What is the penalty spot distance from the goal line?",a:"12 yards",o:["10 yards","11 yards","12 yards","13 yards"]},
-  {q:"Which club is Messi currently playing for (as of 2024)?",a:"Inter Miami",o:["PSG","Barcelona","Inter Miami","Al-Hilal"]},
-  {q:"Which Brazilian plays for Real Madrid and is a key winger?",a:"Vinicius Jr.",o:["Neymar","Rodrygo","Vinicius Jr.","Richarlison"]},
-  {q:"The World Cup is held every how many years?",a:"4 years",o:["2 years","3 years","4 years","5 years"]},
-  {q:"How many World Cups has Lionel Messi played in total?",a:"5",o:["3","4","5","6"]},
-  {q:"Which goalkeeper won the Golden Glove at 2022 World Cup?",a:"Emiliano Martínez",o:["Alisson","Lloris","Courtois","Emiliano Martínez"]},
-  {q:"What number shirt did Pelé famously wear?",a:"10",o:["9","10","11","7"]},
-  {q:"Which country did Argentina beat in the 2022 World Cup semi-final?",a:"Croatia",o:["Netherlands","France","Croatia","Morocco"]},
-  {q:"What is a 'brace' in football?",a:"2 goals by one player in a match",o:["3 goals","2 goals by one player in a match","An assist","A tackle from behind"]},
-  {q:"What is a hat-trick in football?",a:"3 goals by one player in one match",o:["2 goals","3 goals by one player in one match","Goal from outside box","Header goal"]},
-  {q:"Which team has the most UEFA Champions League titles?",a:"Real Madrid",o:["Barcelona","Bayern Munich","Real Madrid","AC Milan"]},
-  {q:"What is a 'clean sheet' in football?",a:"A goalkeeper conceding no goals",o:["A yellow card","Winning 1-0","A goalkeeper conceding no goals","A foul-free game"]},
-  {q:"Where was the 2022 FIFA World Cup held?",a:"Qatar",o:["UAE","Saudi Arabia","Qatar","Bahrain"]},
-  {q:"Kylian Mbappé plays for which country?",a:"France",o:["Belgium","France","Senegal","Morocco"]},
-  {q:"Which World Cup saw the famous 'Hand of God' goal?",a:"1986 Mexico",o:["1982 Spain","1986 Mexico","1990 Italy","1994 USA"]},
-  {q:"How wide is a standard football goal in yards?",a:"8 yards",o:["6 yards","7 yards","8 yards","9 yards"]},
-  {q:"What does VAR stand for in football?",a:"Video Assistant Referee",o:["Virtual Athletic Review","Video Assistant Referee","Visual Analysis Review","Variable Angle Replay"]},
-  {q:"How many players take a penalty shoot-out per side before sudden death?",a:"5",o:["3","4","5","6"]},
-  {q:"The Copa Libertadores is the top club competition in which region?",a:"South America",o:["North America","Europe","South America","Africa"]},
-  {q:"Which country is Maradona from?",a:"Argentina",o:["Brazil","Uruguay","Argentina","Italy"]},
-  {q:"The 2026 FIFA World Cup will be hosted by?",a:"USA, Canada & Mexico",o:["Australia","USA, Canada & Mexico","Saudi Arabia","Spain & Portugal"]},
-  {q:"Which two clubs play 'El Clásico'?",a:"Real Madrid vs Barcelona",o:["Arsenal vs Chelsea","Real Madrid vs Barcelona","Bayern vs Dortmund","PSG vs Marseille"]},
-  {q:"Brazil won their first World Cup in which year?",a:"1958",o:["1950","1954","1958","1962"]},
-  {q:"Which nation has qualified for every single World Cup?",a:"Brazil",o:["Argentina","Germany","Italy","Brazil"]},
-  {q:"The ARG vs BRA international rivalry is formally known as?",a:"Superclásico de las Américas",o:["Copa América Final","Superclásico de las Américas","Rivaldo Cup","Copa del Sur"]},
-  {q:"Which team lost the 2022 World Cup Final to Argentina?",a:"France",o:["Croatia","Morocco","France","England"]},
-  {q:"Which South American confederation governs football?",a:"CONMEBOL",o:["CAF","CONMEBOL","UEFA","AFC"]},
-  {q:"Who is known as the 'White Pelé' in Argentine football?",a:"Alfredo Di Stéfano",o:["Kempes","Alfredo Di Stéfano","Maradona","Sivori"]},
-  {q:"What is the name of Brazil's iconic Rio stadium used in 1950 and 2014?",a:"Maracanã",o:["Morumbi","Arena Corinthians","Maracanã","Fonte Nova"]},
-  {q:"Which player scored the most goals in a single World Cup tournament?",a:"Just Fontaine (13 goals, 1958)",o:["Gerd Müller","Ronaldo R9","Just Fontaine (13 goals, 1958)","Pelé"]},
-  {q:"Vinicius Jr. plays as which type of forward?",a:"Left winger",o:["Centre forward","Right winger","Left winger","Attacking midfielder"]},
-  {q:"Ederson and Alisson are famous Brazilian players in which position?",a:"Goalkeeper",o:["Striker","Midfielder","Defender","Goalkeeper"]},
-  {q:"What is a 'bicycle kick' in football?",a:"A shot where a player kicks the ball backwards overhead",o:["A kick with the heel","A shot where a player kicks the ball backwards overhead","A long-range free kick","A penalty technique"]},
-  {q:"Brazil's football federation is known as?",a:"CBF",o:["FBF","BFA","CBF","BFF"]},
-  {q:"Argentina's second World Cup win was in which year?",a:"1986",o:["1982","1986","1990","1994"]},
-  {q:"Who managed Brazil during their 2002 World Cup winning campaign?",a:"Luiz Felipe Scolari",o:["Zagallo","Parreira","Luiz Felipe Scolari","Tite"]},
-  {q:"Ronaldo 'R9' scored how many goals at the 2002 World Cup?",a:"8",o:["6","7","8","9"]},
-  {q:"Which country's league is called 'La Liga'?",a:"Spain",o:["Italy","France","Spain","Portugal"]},
-  {q:"What year did Messi win his first Ballon d'Or?",a:"2009",o:["2007","2008","2009","2010"]},
-  {q:"In which city is the Camp Nou stadium located?",a:"Barcelona",o:["Madrid","Seville","Barcelona","Bilbao"]},
-  {q:"The Maracanazo refers to which historic upset?",a:"Uruguay beating Brazil in 1950 World Cup",o:["Argentina beating Brazil","Uruguay beating Brazil in 1950 World Cup","Germany beating Brazil 7-1","England beating Argentina"]},
+  {q:"Which goalkeeper won the Golden Glove at the 2022 World Cup?",a:"Emiliano Martínez",o:["Alisson","Lloris","Courtois","Emiliano Martínez"]},
+  {q:"Who scored the winning penalty in the 2022 World Cup final?",a:"Gonzalo Montiel",o:["Messi","Montiel","Di María","Paredes"]},
   {q:"Argentina's famous Buenos Aires derby is between River Plate and?",a:"Boca Juniors",o:["San Lorenzo","Boca Juniors","Independiente","Racing"]},
-  {q:"What position does a libero/sweeper play in football?",a:"Defensive",o:["Attack","Midfield","Defensive","Goalkeeping"]},
-  {q:"Which club is famous for the song 'You'll Never Walk Alone'?",a:"Liverpool",o:["Manchester United","Liverpool","Celtic","Dortmund"]},
-  {q:"What is 'Total Football' associated with?",a:"Netherlands (Johan Cruyff era)",o:["Brazil 1970","Netherlands (Johan Cruyff era)","Germany 1974","Italy (Catenaccio)"]},
+  {q:"Argentina's iconic La Bombonera stadium belongs to which club?",a:"Boca Juniors",o:["River Plate","Boca Juniors","Independiente","San Lorenzo"]},
+  {q:"Argentina's home ground El Monumental belongs to which club?",a:"River Plate",o:["Boca Juniors","River Plate","San Lorenzo","Racing"]},
+  {q:"Which country did Argentina beat in the 2022 World Cup semi-final?",a:"Croatia",o:["Netherlands","France","Croatia","Morocco"]},
+  {q:"How many goals did Messi score at the 2022 World Cup?",a:"7",o:["5","6","7","8"]},
+  {q:"Who won the Golden Ball at the 2022 World Cup?",a:"Lionel Messi",o:["Mbappé","Modric","Lionel Messi","Benzema"]},
+  {q:"Which country is Maradona from?",a:"Argentina",o:["Brazil","Uruguay","Argentina","Italy"]},
+  {q:"Diego Maradona played club football at which famous Italian club?",a:"Napoli",o:["Juventus","AC Milan","Napoli","Inter Milan"]},
+  {q:"Who scored the 'Goal of the Century' in the 1986 World Cup?",a:"Maradona",o:["Pelé","Messi","Maradona","Ronaldo"]},
+  {q:"Which World Cup saw the famous 'Hand of God' goal?",a:"1986 Mexico",o:["1982 Spain","1986 Mexico","1990 Italy","1994 USA"]},
+  {q:"Which Argentine player is known as 'La Pulga' (The Flea)?",a:"Lionel Messi",o:["Neymar","Ronaldo","Lionel Messi","Mbappé"]},
+  {q:"Argentina beat which team in the 2022 World Cup Final?",a:"France",o:["Croatia","Morocco","France","England"]},
+  {q:"How many Copa América titles has Argentina won (as of 2024)?",a:"16",o:["12","14","16","18"]},
+  {q:"Which Argentine forward scored 4 goals at the 2022 World Cup?",a:"Julián Álvarez",o:["Di María","Lautaro","Julián Álvarez","Mac Allister"]},
+  {q:"Which country does Ángel Di María represent?",a:"Argentina",o:["Brazil","Spain","Argentina","France"]},
+  {q:"Argentina lost to which team in the 2022 World Cup group stage?",a:"Saudi Arabia",o:["Poland","Mexico","Saudi Arabia","France"]},
+  {q:"Which Argentine club is known as the Millionarios?",a:"River Plate",o:["Boca Juniors","River Plate","Independiente","Racing"]},
+  {q:"Who managed Argentina to their 1986 World Cup win?",a:"Carlos Bilardo",o:["César Menotti","Carlos Bilardo","Marcelo Bielsa","Alejandro Sabella"]},
+  {q:"Argentina's ARG vs BRA rivalry is formally called?",a:"Superclásico de las Américas",o:["Copa América Final","Superclásico de las Américas","Rivaldo Cup","Copa del Sur"]},
+  {q:"Which Argentine legend is known as the 'White Pelé'?",a:"Alfredo Di Stéfano",o:["Kempes","Alfredo Di Stéfano","Maradona","Sivori"]},
+
+  // ── BRAZIL ──
+  {q:"What colour are Brazil's home shirts?",a:"Yellow",o:["Green","Yellow","Blue","White"]},
+  {q:"What is Brazil's national team nickname?",a:"A Seleção",o:["Os Verdes","A Seleção","Canarinho","Verde-Amarela"]},
+  {q:"Brazil won their first World Cup in which year?",a:"1958",o:["1950","1954","1958","1962"]},
+  {q:"Which Brazilian legend is nicknamed 'O Rei' (The King)?",a:"Pelé",o:["Ronaldo","Pelé","Neymar","Ronaldinho"]},
+  {q:"Who is Brazil's all-time top scorer?",a:"Neymar",o:["Pelé","Ronaldo","Neymar","Romário"]},
+  {q:"In which city is the Maracanã stadium located?",a:"Rio de Janeiro",o:["São Paulo","Rio de Janeiro","Brasília","Salvador"]},
+  {q:"Which club did Pelé play for most of his career?",a:"Santos",o:["Flamengo","Corinthians","Santos","Vasco da Gama"]},
+  {q:"Which Brazilian player won the Ballon d'Or in 2005?",a:"Ronaldinho",o:["Ronaldo","Adriano","Kaká","Ronaldinho"]},
+  {q:"Who managed Brazil during their 2002 World Cup winning campaign?",a:"Luiz Felipe Scolari",o:["Zagallo","Parreira","Luiz Felipe Scolari","Tite"]},
+  {q:"Ronaldo R9 scored how many goals at the 2002 World Cup?",a:"8",o:["6","7","8","9"]},
+  {q:"Who is known as 'The Phenomenon' in Brazilian football?",a:"Ronaldo R9",o:["Pelé","Neymar","Ronaldo R9","Romário"]},
   {q:"Pelé scored how many international goals for Brazil?",a:"77",o:["67","77","87","97"]},
-  {q:"The Premier League is the top football league of which country?",a:"England",o:["Spain","France","England","Germany"]},
+  {q:"Brazil's famous yellow jersey was debuted in which World Cup?",a:"1954",o:["1950","1954","1958","1962"]},
+  {q:"Brazil's football federation is known as?",a:"CBF",o:["FBF","BFA","CBF","BFF"]},
+  {q:"What is the name of Brazil's iconic Rio stadium used in 1950 and 2014?",a:"Maracanã",o:["Morumbi","Arena Corinthians","Maracanã","Fonte Nova"]},
+  {q:"The Maracanazo refers to which historic upset?",a:"Uruguay beating Brazil in the 1950 World Cup",o:["Argentina beating Brazil","Uruguay beating Brazil in the 1950 World Cup","Germany beating Brazil 7-1","England beating Argentina"]},
+  {q:"Which Brazilian plays as a left winger for Real Madrid?",a:"Vinicius Jr.",o:["Neymar","Rodrygo","Vinicius Jr.","Richarlison"]},
+  {q:"Ederson and Alisson are famous Brazilian players in which position?",a:"Goalkeeper",o:["Striker","Midfielder","Defender","Goalkeeper"]},
   {q:"Which year did Brazil win their 5th and most recent World Cup?",a:"2002",o:["1994","1998","2002","2006"]},
-  {q:"How many Ballon d'Or awards has Messi won as of 2023?",a:"8",o:["6","7","8","9"]},
-  {q:"Brazil's home stadium El Maracanã is in which city?",a:"Rio de Janeiro",o:["São Paulo","Rio de Janeiro","Salvador","Recife"]},
-  {q:"Which player scored in both the 2014 and 2018 World Cup finals?",a:"Mario Götze (2014); Mbappé (2018)",o:["Messi","Mario Götze (2014); Mbappé (2018)","Ronaldo","Griezmann"]},
-  {q:"Argentina's iconic 'La Bombonera' stadium belongs to which club?",a:"Boca Juniors",o:["River Plate","Boca Juniors","Independiente","San Lorenzo"]},
-  {q:"Which country does Lautaro Martínez represent?",a:"Argentina",o:["Italy","Uruguay","Argentina","Brazil"]},
+  {q:"Which Brazilian club is known as Mengão?",a:"Flamengo",o:["Flamengo","Corinthians","Santos","Palmeiras"]},
   {q:"Brazil won the Copa América in which recent year?",a:"2019",o:["2015","2016","2019","2021"]},
   {q:"What do the five stars on Brazil's kit represent?",a:"5 World Cup titles",o:["5 Copa América titles","5 confederations","5 World Cup titles","5 Olympic golds"]},
-  {q:"Which Argentine forward plays for Atletico Madrid?",a:"Julián Álvarez",o:["Dybala","Lautaro","Julián Álvarez","Icardi"]},
-  {q:"Who holds the record for most international goals scored by a man?",a:"Cristiano Ronaldo",o:["Messi","Pelé","Cristiano Ronaldo","Ali Daei"]},
-  {q:"Brazil's famous yellow jersey was debuted in which World Cup?",a:"1954",o:["1950","1954","1958","1962"]},
-  {q:"Which is NOT a real position in football?",a:"Libero striker",o:["Right back","Centre half","Libero striker","False 9"]},
-  {q:"What does 'El Clasico' literally mean?",a:"The Classic",o:["The Great Match","The Classic","The Derby","The Rivalry"]},
-  {q:"Neymar Jr. represents which country?",a:"Brazil",o:["Argentina","Portugal","Brazil","Spain"]},
-  {q:"In which year did Messi join Inter Miami?",a:"2023",o:["2021","2022","2023","2024"]},
-  {q:"Which trophy is awarded to the best goalkeeper at the World Cup?",a:"Golden Glove",o:["Golden Boot","Golden Glove","Golden Ball","Silver Shield"]},
-  {q:"How many substitutes can a team use in a standard 90-minute match (since 2022)?",a:"5",o:["3","4","5","6"]},
-  {q:"Argentina's third World Cup win came in which year?",a:"2022",o:["2002","2014","2018","2022"]},
-  {q:"Which player wore number 11 for Brazil at many World Cups?",a:"Ronaldinho / Neymar (various years)",o:["Pelé","Ronaldo","Ronaldinho / Neymar (various years)","Romário"]},
-  {q:"The Conmebol Copa América is held how frequently?",a:"Every 4 years (now every 2)",o:["Every year","Every 4 years (now every 2)","Every 3 years","Every 6 years"]},
-  {q:"Which country does Ángel Di María represent?",a:"Argentina",o:["Brazil","Spain","Argentina","France"]},
-  {q:"How many goals did Ronaldo R9 score in total World Cup appearances?",a:"15",o:["12","13","15","17"]},
-  {q:"Which famous coach won the World Cup with France in 1998?",a:"Aimé Jacquet",o:["Didier Deschamps","Platini","Aimé Jacquet","Henri Michel"]},
-  {q:"Brazil's Canarinho (Little Canary) nickname comes from their?",a:"Yellow home kit",o:["National bird","Yellow home kit","Famous player","Football style"]},
-  {q:"The offside rule means an attacker cannot be?",a:"Behind the second-last defender when the ball is played",o:["Anywhere in the opponent's half","Behind the second-last defender when the ball is played","In the penalty area","Near the goalkeeper"]},
-  {q:"Which player was Argentina's top scorer at the 2022 World Cup alongside Messi?",a:"Julián Álvarez (4 goals)",o:["Di María","Lautaro","Julián Álvarez (4 goals)","Mac Allister"]},
-  {q:"What is the maximum number of players in a match-day squad (bench + starters)?",a:"23 (since 2023 rules: 26)",o:["18","20","23 (since 2023 rules: 26)","25"]},
+  {q:"Which Brazilian won the Ballon d'Or with AC Milan?",a:"Kaká",o:["Ronaldo","Rivaldo","Kaká","Ronaldinho"]},
+  {q:"Which Brazilian club is Neymar most associated with?",a:"Santos",o:["Flamengo","Santos","Palmeiras","Grêmio"]},
+  {q:"Brazil's Canarinho nickname comes from their?",a:"Yellow home kit",o:["National bird","Yellow home kit","Famous player","Football style"]},
   {q:"Which country did Brazil beat in the 2002 World Cup Final?",a:"Germany",o:["Argentina","France","Germany","England"]},
-  {q:"Diego Maradona primarily played at club level for which Italian club?",a:"Napoli",o:["Juventus","AC Milan","Napoli","Inter Milan"]},
-  {q:"Which award did Messi win at the 2014 World Cup despite Argentina losing the final?",a:"Golden Ball (best player)",o:["Golden Boot","Golden Glove","Golden Ball (best player)","Silver Ball"]},
+  {q:"Which city hosted the 1950 World Cup Final between Brazil and Uruguay?",a:"Rio de Janeiro",o:["São Paulo","Belo Horizonte","Rio de Janeiro","Recife"]},
+  {q:"Neymar Jr. plays for which country?",a:"Brazil",o:["Argentina","Portugal","Brazil","Spain"]},
+  {q:"Which Brazilian player scored in the 2014 World Cup opening match?",a:"Neymar",o:["Hulk","Oscar","Neymar","Fred"]},
+  {q:"Brazil has won the Copa América how many times?",a:"9",o:["7","8","9","10"]},
+
+  // ── LIONEL MESSI ──
+  {q:"Which team did Lionel Messi play for most of his career?",a:"Barcelona",o:["Real Madrid","Barcelona","Manchester City","PSG"]},
+  {q:"Which player has won the most Ballon d'Or awards?",a:"Lionel Messi",o:["Ronaldo","Lionel Messi","Ronaldinho","Platini"]},
+  {q:"How many Ballon d'Or awards has Messi won as of 2023?",a:"8",o:["6","7","8","9"]},
+  {q:"What year did Messi win his first Ballon d'Or?",a:"2009",o:["2007","2008","2009","2010"]},
+  {q:"Which year did Messi finally win the World Cup?",a:"2022",o:["2014","2018","2022","2010"]},
+  {q:"How many World Cups has Lionel Messi played in total?",a:"5",o:["3","4","5","6"]},
+  {q:"Which club is Messi currently playing for (as of 2024)?",a:"Inter Miami",o:["PSG","Barcelona","Inter Miami","Al-Hilal"]},
+  {q:"In which year did Messi join Inter Miami?",a:"2023",o:["2021","2022","2023","2024"]},
+  {q:"Messi won the Golden Ball at the 2014 World Cup despite Argentina losing. True?",a:"True",o:["False","True","He won Golden Boot","He won nothing"]},
+  {q:"How many goals did Messi score in his entire Barcelona career?",a:"672",o:["512","600","672","700"]},
+  {q:"Messi won the Copa América with Argentina in which year?",a:"2021",o:["2015","2016","2019","2021"]},
+  {q:"Which award did Messi win at the 2022 World Cup for best player?",a:"Golden Ball",o:["Golden Boot","Golden Glove","Golden Ball","Silver Ball"]},
+  {q:"Messi began his professional career at age 16 at which club?",a:"Barcelona",o:["Newell's Old Boys","River Plate","Barcelona","PSG"]},
+
+  // ── GENERAL FOOTBALL RULES & FACTS ──
+  {q:"How many players are on a football team on the field?",a:"11",o:["10","11","12","9"]},
+  {q:"How long is a standard football match?",a:"90 minutes",o:["80 minutes","90 minutes","100 minutes","120 minutes"]},
+  {q:"What colour card means a player is sent off?",a:"Red",o:["Yellow","Orange","Red","Black"]},
+  {q:"What does a yellow card mean in football?",a:"Warning / caution",o:["Sent off","Warning / caution","5-minute ban","Free kick"]},
+  {q:"How many minutes is extra time (both halves combined)?",a:"30 minutes",o:["20 minutes","30 minutes","40 minutes","25 minutes"]},
+  {q:"What is the penalty spot distance from the goal line?",a:"12 yards",o:["10 yards","11 yards","12 yards","13 yards"]},
+  {q:"How wide is a standard football goal?",a:"8 yards",o:["6 yards","7 yards","8 yards","9 yards"]},
+  {q:"How many substitutes can a team use in a match (since 2022)?",a:"5",o:["3","4","5","6"]},
+  {q:"How many players take a penalty shoot-out per side before sudden death?",a:"5",o:["3","4","5","6"]},
+  {q:"What does VAR stand for in football?",a:"Video Assistant Referee",o:["Virtual Athletic Review","Video Assistant Referee","Visual Analysis Review","Variable Angle Replay"]},
+  {q:"What is a hat-trick in football?",a:"3 goals by one player in one match",o:["2 goals","3 goals by one player in one match","Goal from outside box","Header goal"]},
+  {q:"What is a 'brace' in football?",a:"2 goals by one player in a match",o:["3 goals","2 goals by one player in a match","An assist","A tackle from behind"]},
+  {q:"What is a 'clean sheet' in football?",a:"A goalkeeper conceding no goals",o:["A yellow card","Winning 1-0","A goalkeeper conceding no goals","A foul-free game"]},
+  {q:"What is a 'bicycle kick' also called?",a:"Overhead kick",o:["Scissor kick","Overhead kick","Bicycle kick","Both A and B"]},
+  {q:"The offside rule means an attacker cannot be behind what?",a:"The second-last defender when the ball is played",o:["The halfway line","The second-last defender when the ball is played","The goalkeeper","The penalty spot"]},
+  {q:"What does FIFA stand for?",a:"Fédération Internationale de Football Association",o:["Fédération Internationale de Football Association","Football International Federation","Federation of International Football","Football International Athletic Federation"]},
+  {q:"Which country invented modern football (soccer)?",a:"England",o:["Brazil","England","Spain","France"]},
+  {q:"What is the Copa Libertadores?",a:"Top club competition in South America",o:["Top club competition in South America","A South American national team tournament","A Spanish cup","An African club competition"]},
+  {q:"Which confederation governs football in South America?",a:"CONMEBOL",o:["CAF","CONMEBOL","UEFA","AFC"]},
+  {q:"What is 'Total Football' associated with?",a:"Netherlands (Johan Cruyff era)",o:["Brazil 1970","Netherlands (Johan Cruyff era)","Germany 1974","Italy Catenaccio"]},
+  {q:"In which continent is the Copa América held?",a:"South America",o:["Europe","Africa","South America","Asia"]},
+  {q:"What trophy is awarded to the best goalkeeper at the World Cup?",a:"Golden Glove",o:["Golden Boot","Golden Glove","Golden Ball","Silver Shield"]},
+  {q:"What is the award for the top scorer at the World Cup called?",a:"Golden Boot",o:["Golden Glove","Golden Boot","Golden Ball","Golden Star"]},
+  {q:"Which award goes to the best player at the World Cup?",a:"Golden Ball",o:["Golden Boot","Golden Glove","Golden Ball","Platinum Boot"]},
+  {q:"A penalty kick is taken from how many metres from goal?",a:"11 metres",o:["9 metres","11 metres","13 metres","16 metres"]},
+  {q:"How many points is a win worth in World Cup group stage?",a:"3",o:["1","2","3","4"]},
+  {q:"How many points is a draw worth in World Cup group stage?",a:"1",o:["0","1","2","3"]},
+  {q:"What shape is a modern football (soccer ball)?",a:"Sphere (truncated icosahedron panels)",o:["Oval","Sphere (truncated icosahedron panels)","Cube","Perfect sphere with smooth surface"]},
+  {q:"In football, what does the term 'nutmeg' mean?",a:"Passing the ball through an opponent's legs",o:["A header goal","Passing the ball through an opponent's legs","A back-heel pass","A chip shot"]},
+  {q:"What is the name for when a goalkeeper saves a penalty in a shootout?",a:"Penalty save",o:["Clean save","Penalty save","Hero stop","Golden save"]},
+
+  // ── CLUBS & LEAGUES ──
+  {q:"Which team has the most UEFA Champions League titles?",a:"Real Madrid",o:["Barcelona","Bayern Munich","Real Madrid","AC Milan"]},
+  {q:"Which two clubs play 'El Clásico'?",a:"Real Madrid vs Barcelona",o:["Arsenal vs Chelsea","Real Madrid vs Barcelona","Bayern vs Dortmund","PSG vs Marseille"]},
+  {q:"The Premier League is the top football league of which country?",a:"England",o:["Spain","France","England","Germany"]},
+  {q:"Which country's league is called 'La Liga'?",a:"Spain",o:["Italy","France","Spain","Portugal"]},
+  {q:"Which country's league is called 'Serie A'?",a:"Italy",o:["Italy","France","Spain","Portugal"]},
+  {q:"Which country's league is called 'Bundesliga'?",a:"Germany",o:["Austria","Germany","Switzerland","Netherlands"]},
+  {q:"Which country's league is called 'Ligue 1'?",a:"France",o:["Belgium","France","Switzerland","Luxembourg"]},
+  {q:"In which city is the Camp Nou stadium located?",a:"Barcelona",o:["Madrid","Seville","Barcelona","Bilbao"]},
+  {q:"Which club is famous for the anthem 'You'll Never Walk Alone'?",a:"Liverpool",o:["Manchester United","Liverpool","Celtic","Dortmund"]},
+  {q:"Which club did Cristiano Ronaldo NOT play for?",a:"Chelsea",o:["Manchester United","Real Madrid","Juventus","Chelsea"]},
+  {q:"Which English club has the most Premier League titles?",a:"Manchester United",o:["Arsenal","Liverpool","Manchester United","Chelsea"]},
+  {q:"Real Madrid are based in which city?",a:"Madrid",o:["Barcelona","Seville","Madrid","Bilbao"]},
+  {q:"Bayern Munich are based in which city?",a:"Munich",o:["Berlin","Hamburg","Frankfurt","Munich"]},
+  {q:"Juventus are based in which Italian city?",a:"Turin",o:["Milan","Rome","Turin","Naples"]},
+  {q:"PSG are based in which city?",a:"Paris",o:["Lyon","Marseille","Paris","Bordeaux"]},
+  {q:"Which club plays at the Bernabéu stadium?",a:"Real Madrid",o:["Atletico Madrid","Barcelona","Real Madrid","Sevilla"]},
+  {q:"Which club plays at the Allianz Arena?",a:"Bayern Munich",o:["Borussia Dortmund","Bayern Munich","RB Leipzig","Bayer Leverkusen"]},
+  {q:"AC Milan and Inter Milan both play in which city?",a:"Milan",o:["Rome","Turin","Milan","Naples"]},
+  {q:"Which Brazilian club won the Copa Libertadores in 2022?",a:"Flamengo",o:["Flamengo","Palmeiras","Athletico-PR","Santos"]},
+
+  // ── PLAYERS & RECORDS ──
+  {q:"Who has scored the most goals in World Cup history overall?",a:"Miroslav Klose",o:["Ronaldo Brazil","Miroslav Klose","Gerd Müller","Messi"]},
+  {q:"Who scored the most goals in a single World Cup tournament?",a:"Just Fontaine (13 goals, 1958)",o:["Gerd Müller","Ronaldo R9","Just Fontaine (13 goals, 1958)","Pelé"]},
+  {q:"Who holds the record for most international goals scored by a man?",a:"Cristiano Ronaldo",o:["Messi","Pelé","Cristiano Ronaldo","Ali Daei"]},
+  {q:"Kylian Mbappé plays for which country?",a:"France",o:["Belgium","France","Senegal","Morocco"]},
+  {q:"Which player scored a hat-trick in the 2022 World Cup Final?",a:"Kylian Mbappé",o:["Messi","Giroud","Kylian Mbappé","Griezmann"]},
+  {q:"What number shirt did Pelé famously wear?",a:"10",o:["9","10","11","7"]},
+  {q:"Which position does Neymar play?",a:"Forward",o:["Goalkeeper","Defender","Midfielder","Forward"]},
+  {q:"Which player is nicknamed 'CR7'?",a:"Cristiano Ronaldo",o:["Carlos Ramos 7","Cristiano Ronaldo","Casemiro Ronaldo","Carlos Reyes"]},
+  {q:"Lamine Yamal burst onto the scene at Euro 2024 playing for?",a:"Spain",o:["France","Portugal","Spain","Brazil"]},
+  {q:"Which country does Erling Haaland play for?",a:"Norway",o:["Denmark","Sweden","Norway","Finland"]},
+  {q:"Which country does Kylian Mbappé play for?",a:"France",o:["Ivory Coast","Senegal","France","Cameroon"]},
+  {q:"Who was the first player to win 5 Ballon d'Or awards?",a:"Lionel Messi",o:["Ronaldo","Zidane","Lionel Messi","Platini"]},
+  {q:"Which country does Mohamed Salah represent?",a:"Egypt",o:["Morocco","Egypt","Tunisia","Algeria"]},
+  {q:"Which country does Son Heung-min play for?",a:"South Korea",o:["Japan","China","South Korea","North Korea"]},
+  {q:"Which player is known as 'The Egyptian King'?",a:"Mohamed Salah",o:["Mohamed Salah","Mané","Aubameyang","Mahrez"]},
+  {q:"Pedri and Gavi play for which national team?",a:"Spain",o:["Portugal","Spain","France","Italy"]},
+  {q:"Which club does Erling Haaland currently play for?",a:"Manchester City",o:["Chelsea","Arsenal","Manchester City","Liverpool"]},
+  {q:"Which country does Jude Bellingham represent?",a:"England",o:["Jamaica","USA","England","Wales"]},
+  {q:"Who won the World Cup Golden Boot at France 1998?",a:"Davor Šuker",o:["Ronaldo","Davor Šuker","Dennis Bergkamp","Gabriel Batistuta"]},
+  {q:"Which Argentine forward plays for Atletico Madrid?",a:"Julián Álvarez",o:["Dybala","Lautaro","Julián Álvarez","Icardi"]},
+  {q:"Who is the captain of the Brazilian national team?",a:"Marquinhos",o:["Neymar","Vinicius Jr.","Marquinhos","Thiago Silva"]},
+  {q:"Rodri plays for which national team?",a:"Spain",o:["Portugal","Spain","France","Italy"]},
+  {q:"Which Brazilian plays as a striker for Newcastle United?",a:"Bruno Guimarães (midfield) — Alexander Isak plays striker",o:["Neymar","Rodrygo","Bruno Guimarães (midfield) — Alexander Isak plays striker","Richarlison"]},
+  {q:"What nationality is goalkeeper Alisson Becker?",a:"Brazilian",o:["Argentine","Spanish","Brazilian","German"]},
+
+  // ── WORLD CUP SPECIFIC ──
+  {q:"Which country did Argentina beat in the 2022 World Cup quarter-final?",a:"Netherlands",o:["Netherlands","Croatia","Australia","Poland"]},
+  {q:"What was the score in the 2022 World Cup Final after 90 minutes?",a:"2-2",o:["1-1","2-2","3-2","1-0"]},
+  {q:"Which country finished third at the 2022 World Cup?",a:"Croatia",o:["Morocco","France","Croatia","England"]},
+  {q:"Which African nation reached the semi-finals at the 2022 World Cup?",a:"Morocco",o:["Senegal","Ghana","Morocco","Cameroon"]},
+  {q:"Which country did Messi's Argentina beat in the 2022 final penalty shootout?",a:"France",o:["Croatia","France","Netherlands","Morocco"]},
+  {q:"Who won the Golden Boot at the 2022 World Cup?",a:"Kylian Mbappé",o:["Messi","Olivier Giroud","Kylian Mbappé","Álvarez"]},
+  {q:"Which 2022 World Cup group did Argentina get knocked out in — but came back from?",a:"Group C (lost to Saudi Arabia)",o:["Group A","Group C (lost to Saudi Arabia)","Group D","Group B"]},
+  {q:"Which team beat eventual champions France in the 2022 quarter-finals — no they didn't. Who beat France? Nobody, France lost the final.",a:"Argentina beat France in the final",o:["Morocco","England","Argentina beat France in the final","Portugal"]},
+  {q:"The fastest goal in World Cup history was scored by?",a:"Hakan Şükür (11 seconds, 2002)",o:["Inamoto","Hakan Şükür (11 seconds, 2002)","Batistuta","Ronaldo"]},
+  {q:"Which World Cup had the famous 'Hand of God' and 'Goal of the Century' in the same match?",a:"1986 — Argentina vs England quarter-final",o:["1990 — Argentina vs England","1986 — Argentina vs England quarter-final","1994 — Argentina vs England","1982 — Argentina vs England"]},
+  {q:"Which team won the first ever World Cup in 1930?",a:"Uruguay",o:["Argentina","Brazil","Uruguay","USA"]},
+  {q:"How many World Cups did Pelé win?",a:"3",o:["1","2","3","4"]},
+  {q:"Which country won Euro 2020 (played in 2021)?",a:"Italy",o:["England","France","Italy","Spain"]},
+  {q:"Which country won Euro 2024?",a:"Spain",o:["England","France","Germany","Spain"]},
+  {q:"Who scored the winning goal in the 2010 World Cup Final?",a:"Andrés Iniesta",o:["David Villa","Xavi","Andrés Iniesta","Puyol"]},
+  {q:"Which team did Spain beat in the 2010 World Cup Final?",a:"Netherlands",o:["Germany","Netherlands","Brazil","Argentina"]},
+  {q:"The first World Cup held in Asia was in which year?",a:"2002",o:["1998","2002","2006","2010"]},
+  {q:"How many goals were scored in the 2022 World Cup Final?",a:"6 (3-3 after ET, ARG win on pens)",o:["4","5","6 (3-3 after ET, ARG win on pens)","7"]},
+
+  // ── FUN & MIXED ──
+  {q:"Which famous football trophy is named after the founder of FIFA?",a:"Jules Rimet Trophy",o:["FIFA World Cup Trophy","Jules Rimet Trophy","Golden Cup","World Cup Original"]},
+  {q:"El Clásico between Real Madrid and Barcelona — which club has more La Liga titles?",a:"Real Madrid",o:["Barcelona","Real Madrid","They are equal","Atletico Madrid"]},
+  {q:"Which country has hosted the most World Cups?",a:"Mexico and Brazil (tied with 2 each) and Italy",o:["USA","Italy","Mexico and Brazil (tied with 2 each) and Italy","Germany"]},
+  {q:"The Premier League season runs from which months?",a:"August to May",o:["September to June","August to May","July to April","October to May"]},
+  {q:"What is the maximum number of foreign players allowed at a club in most leagues?",a:"Varies by league — no universal limit",o:["5","7","Varies by league — no universal limit","11"]},
+  {q:"Which player has the most appearances in the FIFA World Cup?",a:"Lothar Matthäus (25 games)",o:["Messi","Cafu","Lothar Matthäus (25 games)","Buffon"]},
+  {q:"Which country does Lionel Messi represent?",a:"Argentina",o:["Spain","Argentina","Italy","Brazil"]},
+  {q:"What does 'golazo' mean in football?",a:"A spectacular or outstanding goal",o:["A penalty goal","An own goal","A spectacular or outstanding goal","A header goal"]},
+  {q:"Which position does a libero or sweeper play?",a:"Defensive",o:["Attack","Midfield","Defensive","Goalkeeping"]},
+  {q:"What is a 'false 9' in football tactics?",a:"A striker who drops deep to create space",o:["A goalkeeper who plays outfield","A striker who drops deep to create space","A winger who plays centre","A defender who scores"]},
+  {q:"Which football competition uses the away goals rule (historically)?",a:"UEFA Champions League (abolished 2021)",o:["World Cup","Copa América","UEFA Champions League (abolished 2021)","Premier League"]},
+  {q:"What is a 'tiki-taka' style of play?",a:"Short passing and movement possession football",o:["Long ball direct football","Short passing and movement possession football","Counter-attacking football","High press football"]},
+  {q:"Which country won the first Copa América?",a:"Uruguay",o:["Argentina","Brazil","Uruguay","Chile"]},
+  {q:"The Intercontinental Cup was a match between champions of which two continents?",a:"Europe and South America",o:["Europe and Asia","Africa and Europe","Europe and South America","North and South America"]},
+  {q:"Which year did the Champions League replace the European Cup?",a:"1992",o:["1988","1990","1992","1994"]},
+  {q:"What colour are the goalposts in standard football?",a:"White",o:["Yellow","Red","White","Black"]},
+  {q:"How many officials are typically on the field during a match?",a:"4 (1 referee + 2 assistants + 1 fourth official)",o:["2","3","4 (1 referee + 2 assistants + 1 fourth official)","5"]},
+  {q:"What is 'Gegenpressing' in football?",a:"Immediately pressing to win the ball back after losing it",o:["Defensive parking the bus","Immediately pressing to win the ball back after losing it","Long ball tactics","Playing with no striker"]},
+  {q:"Which legendary manager popularised the 4-3-3 formation?",a:"Rinus Michels",o:["Johan Cruyff","Rinus Michels","Arrigo Sacchi","Sir Alex Ferguson"]},
+  {q:"The Puskas Award is given for what?",a:"The most beautiful goal of the year",o:["Best goalkeeper","Most goals in a season","The most beautiful goal of the year","Best young player"]},
 ];
 
 // ===== INDEXEDDB DATABASE LAYER =====
@@ -1052,24 +1177,51 @@ async function doLogout(){
 }
 
 // ===== QUIZ HELPERS =====
-function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
-
-async function getUnseen(){
-  if(!S.cu) return QS;
-  const seen = new Set(S.cu.seenQs||[]);
-  let unseen = QS.filter((_,i)=>!seen.has(i));
-  if(unseen.length < 10){
-    S.cu.seenQs = [];
-    await saveUser(S.cu);
-    unseen = QS;
-    toast('Question pool reset! All ' + QS.length + ' questions fresh again. 🔄');
+// Fisher-Yates shuffle — truly random, no bias
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
   }
-  return unseen;
+  return a;
 }
 
+// Weighted pick — questions seen longest ago get higher priority
+// seenQs stores indices in ORDER seen (oldest first)
+// Strategy: split QS into unseen (priority) and seen (deprioritised)
+// Unseen pool exhausted → take from seen starting with oldest seen first
+async function getSmartPool(){
+  if(!S.cu) return shuffle(QS).slice(0,10);
+
+  const seen    = S.cu.seenQs || [];   // array of indices in seen order
+  const seenSet = new Set(seen);
+  const unseen  = QS.map((_,i)=>i).filter(i=>!seenSet.has(i));
+
+  let pool;
+  if(unseen.length >= 10){
+    // Plenty unseen — pick from unseen only
+    pool = shuffle(unseen).slice(0,10).map(i=>QS[i]);
+  } else if(unseen.length > 0){
+    // Few unseen — use all unseen + fill from OLDEST seen
+    const fromUnseen = unseen.map(i=>QS[i]);
+    const needed     = 10 - fromUnseen.length;
+    // seen array is oldest-first, so take from the front
+    const fromOldest = seen.slice(0, needed).map(i=>QS[i]);
+    pool = shuffle([...fromUnseen, ...fromOldest]);
+  } else {
+    // All questions seen — reset and start fresh
+    S.cu.seenQs = [];
+    await saveUser(S.cu);
+    toast('🔄 All ' + QS.length + ' questions completed! Starting fresh pool.');
+    pool = shuffle(QS).slice(0,10);
+  }
+  return pool;
+}
+
+
 async function pick10(){
-  const pool = await getUnseen();
-  return shuffle(pool).slice(0,10);
+  return await getSmartPool();
 }
 
 function buildDots(id, n){
@@ -1142,11 +1294,14 @@ async function answerSolo(chosen, correct, btn){
     document.getElementById('s-fb').textContent = '✗ Wrong! Correct: '+correct;
     document.getElementById('s-fb').style.color = '#F87171';
   }
-  // Mark question as seen
-  const qi = QS.indexOf(soloQs[soloIdx]);
-  if(qi>=0 && S.cu){
+  // Mark question as seen (append to end — oldest entry = front of array)
+  const qi = QS.indexOf(soloQs[soloIdx-1 >= 0 ? soloIdx-1 : 0]);
+  const qiActual = QS.indexOf(soloQs[soloIdx > 0 ? soloIdx-1 : soloIdx]);
+  if(qiActual >= 0 && S.cu){
     if(!S.cu.seenQs) S.cu.seenQs=[];
-    if(!S.cu.seenQs.includes(qi)) S.cu.seenQs.push(qi);
+    // Remove if already exists (re-insert at end = most recently seen)
+    S.cu.seenQs = S.cu.seenQs.filter(x=>x!==qiActual);
+    S.cu.seenQs.push(qiActual);
   }
   soloIdx++;
   setTimeout(()=>{ if(soloIdx<10 && soloTimeLeft>0) showSoloQ(); else endSolo(); }, 1100);
@@ -1179,8 +1334,14 @@ let duelListeners = [];    // track all onValue listeners for cleanup
 
 function fbReady(){
   if(!window._fbReady || !window._fbDB){
-    toast('❌ Not connected to server. Check your internet connection.');
-    return false;
+    // Try initialising again in case scripts loaded late
+    if(typeof firebase !== 'undefined' && !window._fbReady){
+      initFirebase();
+    }
+    if(!window._fbReady || !window._fbDB){
+      toast('⚠️ Duel mode needs an internet connection. Please host on Netlify or open via a server.');
+      return false;
+    }
   }
   return true;
 }
