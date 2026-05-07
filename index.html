@@ -180,6 +180,9 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
 .start-title{font-family:var(--font-display);font-size:28px;color:var(--team-text);letter-spacing:2px;margin-bottom:8px}
 .start-desc{font-size:14px;color:var(--team-text2);line-height:1.6;margin-bottom:20px}
 .rules-card{background:var(--team-bg3);border:1.5px solid var(--team-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--team-text2);line-height:1.7}
+.mode-select-card{background:var(--team-bg3);border:2px solid var(--team-border);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:var(--transition)}
+.mode-select-card:hover{border-color:var(--team-primary);background:var(--team-bg2)}
+.mode-select-card.active{border-color:var(--team-primary);background:var(--team-bg2);box-shadow:0 0 0 3px rgba(255,255,255,0.07)}
 </style>
   <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" crossorigin="anonymous"></script>
@@ -343,7 +346,7 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
     </div>
     <div class="mode-card" onclick="navTo('duel')">
       <div class="mode-icon">⚔️</div>
-      <div><div class="mode-title">Duel Mode</div><div class="mode-desc">Challenge a friend · 10 questions · 60s</div></div>
+      <div><div class="mode-title">Duel Mode</div><div class="mode-desc">Challenge a friend · 10 or 20 questions</div></div>
       <div class="mode-arrow" style="color:var(--gray-300)">›</div>
     </div>
     <div style="height:8px"></div>
@@ -375,10 +378,10 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       </div>
       <div class="rules-card">
         📋 <strong>How it works:</strong><br>
-        • 10 questions drawn from our 120+ question bank<br>
+        • 10 questions per round<br>
         • 60-second timer for all 10 questions<br>
-        • Questions answered before won't show again<br>
-        • Pool resets when you exhaust all questions
+        • Questions you've answered won't show again<br>
+        • Pool resets automatically when exhausted
       </div>
       <button class="btn btn-primary" onclick="startSolo()">Start Quiz!</button>
     </div>
@@ -485,6 +488,7 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       </div>
       <div class="timer-bar-wrap"><div class="timer-fill" id="d-tbar" style="width:100%"></div></div>
       <div class="q-label" id="d-qnum" style="text-align:center">Q1 of 10</div>
+      <div id="d-mode-badge" style="text-align:center;font-size:11px;color:var(--team-text3);margin-bottom:4px"></div>
       <div class="q-text" id="d-qtxt">Loading...</div>
       <div class="options" id="d-opts"></div>
       <div class="feedback" id="d-fb"></div>
@@ -942,6 +946,13 @@ let S = { cu: null, selTeam: null };
 let sTimer=null, dTimer=null;
 let soloQs=[], soloIdx=0, soloCorr=0, soloTimeLeft=60, soloAnswered=false;
 let duelQs=[], duelIdx=0, dp1=0, dp2=0, dTimeLeft=60, dAnswered=false, dOppName='';
+let duelMode=10; // 10 or 20 questions
+
+function selectDuelMode(n){
+  duelMode = n;
+  document.getElementById('mode-10').classList.toggle('active', n===10);
+  document.getElementById('mode-20').classList.toggle('active', n===20);
+}
 let duelCode='', duelOppJoined=false;
 
 // ===== TOAST =====
@@ -1374,6 +1385,7 @@ function resetDuelFull(){
   }
   duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
   show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result'); hide('d-waiting-result');
+  duelMode=10; selectDuelMode(10);
   const joinErr = document.getElementById('d-join-err');
   if(joinErr) joinErr.classList.remove('show');
 }
@@ -1395,7 +1407,8 @@ async function createLobby(){
     duelRole = 'host';
 
     // Use a simple random slice of QS — no async IndexedDB needed here
-    const qs = shuffle([...QS]).slice(0, 10).map(q=>({ q:q.q, a:q.a, o:q.o }));
+    const qCount = duelMode || 10;
+    const qs = shuffle([...QS]).slice(0, qCount).map(q=>({ q:q.q, a:q.a, o:q.o }));
 
     duelRoomRef = db.ref('duels/' + duelCode);
 
@@ -1403,6 +1416,7 @@ async function createLobby(){
       host:      { name: S.cu ? S.cu.name.split(' ')[0] : 'Host', score: 0, done: false },
       guest:     null,
       questions: qs,
+      mode:      qCount,
       status:    'waiting',
       startedAt: null
     });
@@ -1411,7 +1425,7 @@ async function createLobby(){
     document.getElementById('d-code').textContent    = duelCode;
     document.getElementById('d-p1-av').textContent   = S.cu ? S.cu.name.charAt(0).toUpperCase() : 'H';
     document.getElementById('d-p1-name').textContent = S.cu ? S.cu.name.split(' ')[0] : 'You';
-    document.getElementById('d-conn-status').innerHTML = '🟢 Lobby created — share your code!';
+    document.getElementById('d-conn-status').innerHTML = '🟢 Lobby created (' + qCount + 'Q / ' + (qCount===20?'2 min':'60s') + ') — share your code!';
     document.getElementById('d-start-btn').disabled    = true;
     document.getElementById('d-start-btn').textContent = 'Waiting for opponent...';
 
@@ -1552,10 +1566,12 @@ async function runDuelGame(){
   // Fetch questions and opponent name from Firebase
   const snap = await db.ref('duels/' + duelCode).once('value');
   const room  = snap.val();
-  duelQs  = room.questions;
+  duelQs   = room.questions;
+  duelMode = room.mode || 10;
   dOppName = duelRole === 'host' ? room.guest.name : room.host.name;
 
-  duelIdx=0; dp1=0; dp2=0; dTimeLeft=60; dAnswered=false;
+  const totalTime = duelMode === 20 ? 120 : 60;
+  duelIdx=0; dp1=0; dp2=0; dTimeLeft=totalTime; dAnswered=false;
 
   hide('d-waiting'); show('d-quiz');
 
@@ -1595,7 +1611,8 @@ async function runDuelGame(){
   dTimer = setInterval(()=>{
     dTimeLeft--;
     document.getElementById('d-timer').textContent = dTimeLeft;
-    document.getElementById('d-tbar').style.width  = (dTimeLeft/60*100)+'%';
+    const totalT = duelMode===20 ? 120 : 60;
+    document.getElementById('d-tbar').style.width = (dTimeLeft/totalT*100)+'%';
     if(dTimeLeft<=0){
       clearInterval(dTimer);
       // Timer ran out — mark done with current score then wait for opponent
@@ -1616,7 +1633,9 @@ function showDuelQ(){
   if(duelIdx >= duelQs.length){ endDuel(); return; }
   dAnswered = false;
   const q = duelQs[duelIdx];
-  document.getElementById('d-qnum').textContent = 'Q'+(duelIdx+1)+' of 10';
+  document.getElementById('d-qnum').textContent = 'Q'+(duelIdx+1)+' of '+duelQs.length;
+  const badge = document.getElementById('d-mode-badge');
+  if(badge) badge.textContent = duelQs.length===20 ? '⏱ 2 min mode' : '⏱ 60 sec mode';
   document.getElementById('d-qtxt').textContent = q.q;
   document.getElementById('d-fb').textContent   = '';
   const opts = document.getElementById('d-opts');
