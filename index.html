@@ -490,6 +490,23 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       <div class="feedback" id="d-fb"></div>
     </div>
 
+    <!-- DUEL WAITING FOR OPPONENT -->
+    <div id="d-waiting-result" style="display:none">
+      <div class="result-wrap">
+        <span class="result-emoji">⏳</span>
+        <div class="result-score" style="font-size:36px;color:var(--team-primary)">FINISHED!</div>
+        <div class="result-lbl">Waiting for opponent to finish...</div>
+        <div style="margin:20px auto">
+          <div class="spinner" style="width:48px;height:48px;border-width:4px"></div>
+        </div>
+        <div class="card" style="text-align:center;margin-top:8px">
+          <div style="font-size:13px;color:var(--team-text3);margin-bottom:4px">YOUR SCORE</div>
+          <div style="font-family:'Bebas Neue';font-size:52px;color:var(--team-primary)" id="d-wr-myscore">0</div>
+          <div style="font-size:12px;color:var(--team-text3)">waiting for <span id="d-wr-oppname">opponent</span>...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- DUEL RESULT -->
     <div id="d-result" style="display:none">
       <div class="result-wrap">
@@ -1356,7 +1373,7 @@ function resetDuelFull(){
     try{ duelRoomRef.remove(); }catch(e){}
   }
   duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
-  show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result');
+  show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result'); hide('d-waiting-result');
   const joinErr = document.getElementById('d-join-err');
   if(joinErr) joinErr.classList.remove('show');
 }
@@ -1559,7 +1576,16 @@ async function runDuelGame(){
   const oppDonePath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host') + '/done';
   const oppDoneRef = db.ref(oppDonePath);
   oppDoneRef.on('value', snap => {
-    if(snap.val() === true && duelIdx >= duelQs.length) endDuel();
+    // Opponent finished — if I'm also done (on waiting screen), show result now
+    if(snap.val() === true && duelIdx >= duelQs.length){
+      oppDoneRef.off();
+      // Get their final score before showing result
+      const oppFull = db.ref(oppDonePath.replace('/done',''));
+      oppFull.once('value').then(s=>{
+        if(s.exists()) dp2 = s.val().score || dp2;
+        showDuelResult();
+      }).catch(()=>showDuelResult());
+    }
   });
   duelListeners.push({ ref: oppDoneRef, fn: null });
 
@@ -1570,7 +1596,19 @@ async function runDuelGame(){
     dTimeLeft--;
     document.getElementById('d-timer').textContent = dTimeLeft;
     document.getElementById('d-tbar').style.width  = (dTimeLeft/60*100)+'%';
-    if(dTimeLeft<=0){ clearInterval(dTimer); endDuel(); }
+    if(dTimeLeft<=0){
+      clearInterval(dTimer);
+      // Timer ran out — mark done with current score then wait for opponent
+      if(window._fbDB){
+        const db = window._fbDB;
+        const myPath = 'duels/' + duelCode + '/' + duelRole;
+        db.ref(myPath).update({ done: true, score: dp1 }).then(()=>{
+          showWaitingForOpponent();
+        }).catch(()=>{ showDuelResult(); });
+      } else {
+        showDuelResult();
+      }
+    }
   }, 1000);
 }
 
@@ -1616,30 +1654,67 @@ async function answerDuel(chosen, correct, btn){
 
   duelIdx++;
   if(duelIdx >= duelQs.length){
-    // Mark myself as done
-    await db.ref(myPath).update({ done: true });
+    // Mark myself as done in Firebase
+    await db.ref(myPath).update({ done: true, score: dp1 });
     clearInterval(dTimer);
-    endDuel();
+    // Show waiting screen — don't show results until opponent also done
+    showWaitingForOpponent();
   } else if(dTimeLeft > 0){
     setTimeout(showDuelQ, 950);
   }
 }
 
-async function endDuel(){
+function showWaitingForOpponent(){
+  hide('d-quiz');
+  show('d-waiting-result');
+  document.getElementById('d-wr-myscore').textContent = dp1;
+  document.getElementById('d-wr-oppname').textContent = dOppName || 'opponent';
+  // Now actively listen for opponent to finish
+  waitForOpponentDone();
+}
+
+function waitForOpponentDone(){
+  if(!window._fbDB) return;
+  const db = window._fbDB;
+  const oppPath = 'duels/' + duelCode + '/' + (duelRole==='host' ? 'guest' : 'host');
+  const oppDoneRef = db.ref(oppPath);
+  oppDoneRef.on('value', snap => {
+    const opp = snap.val();
+    if(opp && opp.done === true){
+      oppDoneRef.off(); // detach listener
+      dp2 = opp.score || dp2;
+      showDuelResult();
+    }
+  });
+  // Safety fallback: if opponent disappears after 30s, show result anyway
+  setTimeout(()=>{
+    oppDoneRef.off();
+    showDuelResult();
+  }, 30000);
+}
+
+// Called only when BOTH players are done (or 30s safety timeout)
+async function showDuelResult(){
   clearInterval(dTimer);
-  // Detach all listeners
+  // Detach all Firebase listeners
   duelListeners.forEach(({ref:r}) => { try{ if(r && r.off) r.off(); }catch(e){} });
   duelListeners = [];
 
-  // Final score sync from Firebase
-  const db = window._fbDB;
-  const snap = await db.ref('duels/' + duelCode).once('value');
-  if(snap.exists()){
-    const room = snap.val();
-    dp1 = (duelRole==='host' ? room.host?.score : room.guest?.score) || dp1;
-    dp2 = (duelRole==='host' ? room.guest?.score : room.host?.score) || dp2;
-    // Host cleans up the room after a short delay
-    if(duelRole==='host') setTimeout(()=>{ try{ db.ref('duels/'+duelCode).remove(); }catch(e){} }, 5000);
+  // Final authoritative score read from Firebase
+  if(window._fbDB){
+    try {
+      const db  = window._fbDB;
+      const snap = await db.ref('duels/' + duelCode).once('value');
+      if(snap.exists()){
+        const room = snap.val();
+        dp1 = (duelRole==='host' ? room.host?.score : room.guest?.score) ?? dp1;
+        dp2 = (duelRole==='host' ? room.guest?.score : room.host?.score) ?? dp2;
+      }
+      // Host cleans up room after result shown
+      if(duelRole==='host'){
+        setTimeout(()=>{ try{ db.ref('duels/'+duelCode).remove(); }catch(e){} }, 8000);
+      }
+    } catch(e){ console.warn('Score sync error:', e); }
   }
 
   const win=dp1>dp2, draw=dp1===dp2;
@@ -1652,7 +1727,11 @@ async function endDuel(){
     await saveUser(S.cu);
   }
 
-  hide('d-quiz'); show('d-result');
+  // Hide waiting screen, show result
+  hide('d-waiting-result');
+  hide('d-quiz');
+  show('d-result');
+
   document.getElementById('dr-p1n').textContent  = S.cu ? S.cu.name.split(' ')[0] : 'You';
   document.getElementById('dr-p2n').textContent  = dOppName || 'Opponent';
   document.getElementById('dr-p1s').textContent  = dp1;
@@ -1662,18 +1741,21 @@ async function endDuel(){
   if(draw){
     document.getElementById('d-r-icon').textContent  = '🤝';
     document.getElementById('d-r-title').textContent = 'DRAW!';
-    document.getElementById('d-r-sub').textContent   = 'Evenly matched!';
+    document.getElementById('d-r-sub').textContent   = 'Evenly matched — great game!';
   } else if(win){
     document.getElementById('d-r-icon').textContent  = '🏆';
     document.getElementById('d-r-title').textContent = 'YOU WIN!';
-    document.getElementById('d-r-sub').textContent   = 'Excellent performance!';
+    document.getElementById('d-r-sub').textContent   = 'You outscored ' + (dOppName||'your opponent') + '!';
   } else {
     document.getElementById('d-r-icon').textContent  = '😔';
     document.getElementById('d-r-title').textContent = 'YOU LOSE';
-    document.getElementById('d-r-sub').textContent   = (dOppName||'Opponent') + ' was better this time!';
+    document.getElementById('d-r-sub').textContent   = (dOppName||'Opponent') + ' beat you this time!';
   }
   renderHome();
 }
+
+// Keep endDuel as alias (called from oppDone listener in runDuelGame)
+async function endDuel(){ await showDuelResult(); }
 
 // ===== LEADERBOARDS =====
 async function renderLBs(){
