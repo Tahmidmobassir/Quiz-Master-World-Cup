@@ -440,7 +440,25 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
         <div class="start-title">DUEL A FRIEND</div>
         <p class="start-desc">Create a lobby and share the code,<br>or enter a friend's code to join!</p>
       </div>
-      <button class="btn btn-primary" style="margin-bottom:12px" onclick="createLobby()">Create Lobby & Get Code</button>
+      <!-- GAME MODE SELECTOR -->
+      <p style="font-size:11px;font-weight:800;color:var(--team-text3);letter-spacing:1.5px;text-align:center;margin-bottom:10px">SELECT GAME MODE</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div id="mode-10" onclick="selectDuelMode(10)"
+          style="background:var(--team-primary);border:2px solid var(--team-primary);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:var(--transition)">
+          <div style="font-family:'Bebas Neue',cursive;font-size:34px;color:#fff;line-height:1">10</div>
+          <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.9)">Questions</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px">⏱ 60 seconds</div>
+        </div>
+        <div id="mode-20" onclick="selectDuelMode(20)"
+          style="background:var(--team-bg3);border:2px solid var(--team-border);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:var(--transition)">
+          <div style="font-family:'Bebas Neue',cursive;font-size:34px;color:var(--team-primary);line-height:1">20</div>
+          <div style="font-size:12px;font-weight:700;color:var(--team-text2)">Questions</div>
+          <div style="font-size:11px;color:var(--team-text3);margin-top:3px">⏱ 2 minutes</div>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--team-text3);text-align:center;margin-bottom:12px">Mode is set by the lobby creator</p>
+
+      <button class="btn btn-primary" style="margin-bottom:12px" onclick="createLobby()">Create Lobby &amp; Get Code</button>
       <div style="text-align:center;font-size:13px;color:var(--team-text3);margin:10px 0">— or enter a code to join —</div>
       <div style="display:flex;gap:8px">
         <input type="text" id="join-code" placeholder="6-digit code" maxlength="6"
@@ -950,8 +968,20 @@ let duelMode=10; // 10 or 20 questions
 
 function selectDuelMode(n){
   duelMode = n;
-  document.getElementById('mode-10').classList.toggle('active', n===10);
-  document.getElementById('mode-20').classList.toggle('active', n===20);
+  const m10 = document.getElementById('mode-10');
+  const m20 = document.getElementById('mode-20');
+  if(!m10 || !m20) return;
+  if(n===10){
+    m10.style.background='var(--team-primary)'; m10.style.borderColor='var(--team-primary)';
+    m10.querySelector('div').style.color='#fff';
+    m20.style.background='var(--team-bg3)'; m20.style.borderColor='var(--team-border)';
+    m20.querySelector('div').style.color='var(--team-primary)';
+  } else {
+    m20.style.background='var(--team-primary)'; m20.style.borderColor='var(--team-primary)';
+    m20.querySelector('div').style.color='#fff';
+    m10.style.background='var(--team-bg3)'; m10.style.borderColor='var(--team-border)';
+    m10.querySelector('div').style.color='var(--team-primary)';
+  }
 }
 let duelCode='', duelOppJoined=false;
 
@@ -1385,7 +1415,7 @@ function resetDuelFull(){
   }
   duelRole=null; duelRoomRef=null; duelCode=''; duelOppJoined=false;
   show('d-lobby'); hide('d-waiting'); hide('d-quiz'); hide('d-result'); hide('d-waiting-result');
-  duelMode=10; selectDuelMode(10);
+  duelMode=10; setTimeout(()=>selectDuelMode(10), 50);
   const joinErr = document.getElementById('d-join-err');
   if(joinErr) joinErr.classList.remove('show');
 }
