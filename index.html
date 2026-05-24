@@ -443,18 +443,18 @@ input:focus{border-color:var(--team-primary);box-shadow:0 0 0 3px rgba(255,255,2
       <!-- GAME MODE SELECTOR -->
       <p style="font-size:11px;font-weight:800;color:var(--team-text3);letter-spacing:1.5px;text-align:center;margin-bottom:10px">SELECT GAME MODE</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-        <div id="mode-10" onclick="selectDuelMode(10)"
-          style="background:var(--team-primary);border:2px solid var(--team-primary);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:var(--transition)">
-          <div style="font-family:'Bebas Neue',cursive;font-size:34px;color:#fff;line-height:1">10</div>
-          <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.9)">Questions</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px">⏱ 60 seconds</div>
-        </div>
-        <div id="mode-20" onclick="selectDuelMode(20)"
-          style="background:var(--team-bg3);border:2px solid var(--team-border);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:var(--transition)">
-          <div style="font-family:'Bebas Neue',cursive;font-size:34px;color:var(--team-primary);line-height:1">20</div>
-          <div style="font-size:12px;font-weight:700;color:var(--team-text2)">Questions</div>
-          <div style="font-size:11px;color:var(--team-text3);margin-top:3px">⏱ 2 minutes</div>
-        </div>
+        <button type="button" id="mode-10" onclick="selectDuelMode(10)"
+          style="background:var(--team-primary);border:3px solid var(--team-primary);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;width:100%;transition:all 0.2s">
+          <div style="font-family:'Bebas Neue',cursive;font-size:38px;color:#fff;line-height:1">10</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-top:2px">Questions</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:4px">⏱ 60 seconds</div>
+        </button>
+        <button type="button" id="mode-20" onclick="selectDuelMode(20)"
+          style="background:transparent;border:3px solid var(--team-border);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;width:100%;transition:all 0.2s">
+          <div style="font-family:'Bebas Neue',cursive;font-size:38px;color:var(--team-primary);line-height:1">20</div>
+          <div style="font-size:13px;font-weight:700;color:var(--team-text2);margin-top:2px">Questions</div>
+          <div style="font-size:11px;color:var(--team-text3);margin-top:4px">⏱ 2 minutes</div>
+        </button>
       </div>
       <p style="font-size:11px;color:var(--team-text3);text-align:center;margin-bottom:12px">Mode is set by the lobby creator</p>
 
@@ -971,17 +971,23 @@ function selectDuelMode(n){
   const m10 = document.getElementById('mode-10');
   const m20 = document.getElementById('mode-20');
   if(!m10 || !m20) return;
-  if(n===10){
-    m10.style.background='var(--team-primary)'; m10.style.borderColor='var(--team-primary)';
-    m10.querySelector('div').style.color='#fff';
-    m20.style.background='var(--team-bg3)'; m20.style.borderColor='var(--team-border)';
-    m20.querySelector('div').style.color='var(--team-primary)';
-  } else {
-    m20.style.background='var(--team-primary)'; m20.style.borderColor='var(--team-primary)';
-    m20.querySelector('div').style.color='#fff';
-    m10.style.background='var(--team-bg3)'; m10.style.borderColor='var(--team-border)';
-    m10.querySelector('div').style.color='var(--team-primary)';
-  }
+
+  // Active card — filled with team colour, white text
+  const activeStyle = (el) => {
+    el.style.cssText = 'background:var(--team-primary);border:3px solid var(--team-primary);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;width:100%;transition:all 0.2s';
+    el.querySelectorAll('div').forEach(d => d.style.color = '#fff');
+  };
+  // Inactive card — transparent background, muted
+  const inactiveStyle = (el) => {
+    el.style.cssText = 'background:transparent;border:3px solid var(--team-border);border-radius:12px;padding:16px 10px;text-align:center;cursor:pointer;width:100%;transition:all 0.2s';
+    const divs = el.querySelectorAll('div');
+    if(divs[0]) divs[0].style.color = 'var(--team-primary)';
+    if(divs[1]) divs[1].style.color = 'var(--team-text2)';
+    if(divs[2]) divs[2].style.color = 'var(--team-text3)';
+  };
+
+  if(n === 10){ activeStyle(m10); inactiveStyle(m20); }
+  else        { activeStyle(m20); inactiveStyle(m10); }
 }
 let duelCode='', duelOppJoined=false;
 
